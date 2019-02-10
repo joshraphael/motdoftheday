@@ -4,9 +4,14 @@ BUILD=$(GO) build
 RUN=$(GO) run
 
 clean:
-	rm $(APP_NAME)
+	rm -rf vendor/
+	rm -f go.sum
+	go clean --modcache
+	rm -f $(APP_NAME)
 
+build: export GO111MODULE=on
 build:
+	$(GO) mod vendor
 	$(BUILD)
 
 run: build
