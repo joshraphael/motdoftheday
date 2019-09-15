@@ -2,18 +2,20 @@
 <html lang="en">
   <head>
     <title>
-        Diary
+      Diary
     </title>
-    <link rel="stylesheet" href="/static/css/cleditor/cleditor-1.4.5.css" />
-    <script src="/static/js/jquery/jquery-3.3.1.min.js"></script>
-    <script src="/static/js/cleditor/cleditor-1.4.5.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
+    <script src="/static/js/vendor/jquery/jquery-3.3.1.min.js"></script>
+    <script src="/static/js/vendor/srteditor/srteditor.min.js"></script>
     <script>
-        $(document).ready(function () { $("#input").cleditor(); });
+      $(document).ready(function () {
+        $("#srteditor").srteditor(function(e) {
+          console.log(e.data.doc.body.innerHTML)
+        });
+      });
     </script>
   </head>
   <body>
-    Hello World!
-    <textarea id="input" name="input"></textarea>
+    <iframe id="srteditor"></iframe>
   </body>
 </html>
-
