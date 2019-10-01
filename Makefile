@@ -12,7 +12,7 @@ clean:
 build: export GO111MODULE=on
 build:
 	$(GO) mod vendor
-	$(BUILD)
+	$(BUILD) -o $(APP_NAME) ./cmd/diary/main.go
 
 run: build
 	./$(APP_NAME)

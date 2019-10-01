@@ -1,21 +1,36 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <title>
-      Diary
-    </title>
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
-    <script src="/static/js/vendor/jquery/jquery-3.3.1.min.js"></script>
-    <script src="/static/js/vendor/srteditor/srteditor.min.js"></script>
-    <script>
-      $(document).ready(function () {
-        $("#srteditor").srteditor(function(e) {
-          console.log(e.data.doc.body.innerHTML)
+
+<head>
+  <title>
+    Diary
+  </title>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
+  <script type="application/javascript" src="/static/js/vendor/jquery/jquery-3.3.1.min.js">
+  </script>
+  <script type="application/javascript" src="/static/js/vendor/srteditor/srteditor.min.js">
+  </script>
+  <script type="application/javascript">
+    $(document).ready(function () {
+      $("#srteditor").srteditor(function (e) {
+        var submit = { title: $("#diary-title").val(), date: (new Date()).toISOString(), body: e.data.doc.body.innerHTML };
+        fetch("/api/submit/", {
+          method: "POST",
+          body: JSON.stringify(submit)
+        }).then(res => {
+          console.log("Request complete! response:", res);
         });
       });
-    </script>
-  </head>
-  <body>
-    <iframe id="srteditor"></iframe>
-  </body>
+    });
+  </script>
+</head>
+
+<body>
+  <div>
+    <input type="text" id="diary-title" \>
+  </div>
+  <iframe id="srteditor">
+  </iframe>
+</body>
+
 </html>
