@@ -29,6 +29,9 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 			msg := "Error processing submit request: " + err.Error()
 			fmt.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
+			return
 		}
+		w.WriteHeader(http.StatusCreated)
+		return
 	}
 }

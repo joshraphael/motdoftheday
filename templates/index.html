@@ -14,12 +14,12 @@
     $(document).ready(function () {
       $("#srteditor").srteditor(function (e) {
         var submit = { title: $("#diary-title").val(), date: (new Date()).toISOString(), body: e.data.doc.body.innerHTML };
-        fetch("/api/submit/", {
-          method: "POST",
-          body: JSON.stringify(submit)
-        }).then(res => {
-          console.log("Request complete! response:", res);
-        });
+        $.post("/api/submit", JSON.stringify(submit), function (data) {
+          $("#diary-status").html("");
+          console.log(data);
+        }).fail(function (data) {
+          $("#diary-status").html(data.responseText);
+        })
       });
     });
   </script>
@@ -31,6 +31,8 @@
   </div>
   <iframe id="srteditor">
   </iframe>
+  <div id="diary-status">
+  </div>
 </body>
 
 </html>
