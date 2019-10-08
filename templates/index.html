@@ -12,14 +12,25 @@
   </script>
   <script type="application/javascript">
     $(document).ready(function () {
-      $("#srteditor").srteditor(function (e) {
-        var submit = { title: $("#diary-title").val(), date: (new Date()).toISOString(), body: e.data.doc.body.innerHTML };
-        $.post("/api/submit", JSON.stringify(submit), function (data) {
-          $("#diary-status").html("");
-          console.log(data);
-        }).fail(function (data) {
-          $("#diary-status").html(data.responseText);
-        })
+      $("#srteditor").srteditor({
+        "Submit": function (e) {
+          var submit = { title: $("#diary-title").val(), tags: $("#diary-tags").val().split(","), body: e.data.doc.body.innerHTML };
+          $.post("/api/submit", JSON.stringify(submit), function (data) {
+            $("#diary-status").html("");
+            console.log(data);
+          }).fail(function (data) {
+            $("#diary-status").html(data.responseText);
+          })
+        },
+        "Save": function (e) {
+          var save = { title: $("#diary-title").val(), tags: $("#diary-tags").val().split(","), body: e.data.doc.body.innerHTML };
+          $.post("/api/save", JSON.stringify(save), function (data) {
+            $("#diary-status").html("");
+            console.log(data);
+          }).fail(function (data) {
+            $("#diary-status").html(data.responseText);
+          })
+        }
       });
     });
   </script>
@@ -27,7 +38,9 @@
 
 <body>
   <div>
-    <input type="text" id="diary-title" \>
+    Title: <input type="text" id="diary-title" \>
+    <br>
+    Tags (Comma separated): <input type="text" id="diary-tags" \>
   </div>
   <iframe id="srteditor">
   </iframe>

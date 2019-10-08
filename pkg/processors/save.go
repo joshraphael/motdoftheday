@@ -7,10 +7,10 @@ import (
 	"gitlab.com/joshraphael/diary/pkg/post"
 )
 
-func SubmitForm(p post.Post) apierror.IApiError {
+func SaveForm(p post.Post) apierror.IApiError {
 	err := p.Validate()
 	if err != nil {
-		msg := "invalid submit post: " + err.Error()
+		msg := "invalid save post: " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
