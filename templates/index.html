@@ -17,7 +17,6 @@
           var submit = { title: $("#diary-title").val(), tags: $("#diary-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/submit", JSON.stringify(submit), function (data) {
             $("#diary-status").html("");
-            console.log(data);
           }).fail(function (data) {
             $("#diary-status").html(data.responseText);
           })
@@ -26,7 +25,6 @@
           var save = { title: $("#diary-title").val(), tags: $("#diary-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/save", JSON.stringify(save), function (data) {
             $("#diary-status").html("");
-            console.log(data);
           }).fail(function (data) {
             $("#diary-status").html(data.responseText);
           })

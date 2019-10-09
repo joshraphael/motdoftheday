@@ -7,3 +7,4 @@ Libraries used:<br>
 [Golang](https://golang.org/)<br>
 [jQuery](https://jquery.com/)<br>
 [SRTEditor](https://srteditor.com/)<br>
+[SQLite](https://www.sqlite.org)</br>
