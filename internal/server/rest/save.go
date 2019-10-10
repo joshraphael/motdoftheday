@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"gitlab.com/joshraphael/diary/pkg/post"
-	"gitlab.com/joshraphael/diary/pkg/processors"
 )
 
 func (r Rest) SaveHandler(w http.ResponseWriter, req *http.Request) {
@@ -26,7 +25,7 @@ func (r Rest) SaveHandler(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
-		if apiErr := processors.SaveForm(post); apiErr != nil {
+		if apiErr := r.processor.SaveForm(post); apiErr != nil {
 			msg := "Error processing save request: " + apiErr.Error()
 			fmt.Println(msg)
 			http.Error(w, msg, apiErr.Code())

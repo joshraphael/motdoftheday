@@ -1,10 +1,5 @@
 PRAGMA foreign_keys = ON;
 
-DROP TABLE post_tags;
-DROP TABLE tag;
-DROP TABLE post;
-DROP TABLE user;
-
 CREATE TABLE user (
     id          INTEGER NOT NULL CHECK(TYPEOF(id) = 'integer')          PRIMARY KEY AUTOINCREMENT,
     user_name   TEXT    NOT NULL CHECK(TYPEOF(user_name) = 'text'),
@@ -40,24 +35,3 @@ CREATE TABLE post_tags (
     insert_time INTEGER NOT NULL CHECK(TYPEOF(insert_time) = 'integer') DEFAULT (CAST(strftime('%s', 'now') as integer)),
     UNIQUE(post_id, tag_id)
 );
-
-INSERT INTO user (user_name, first_name, last_name) VALUES(LOWER("Admin"), "ADMIN", "ADMIN");
-INSERT INTO post (user_id, title, body) VALUES((
-    SELECT id
-    FROM user
-    WHERE LOWER(user_name) = "admin"
-), LOWER("Sample-post"), "<h3>This is a sample blog!</h3>");
-INSERT INTO tag (name, user_id) VALUES ("admin", (
-    SELECT id
-    FROM user
-    WHERE LOWER(user_name) = "admin"
-));
-INSERT INTO post_tags (post_id, tag_id) VALUES((
-    SELECT id
-    FROM post
-    WHERE LOWER(title) = "sample-post"
-), (
-    SELECT id
-    FROM tag
-    WHERE LOWER(name) = "admin"
-));

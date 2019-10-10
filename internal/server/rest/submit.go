@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"gitlab.com/joshraphael/diary/pkg/post"
-	"gitlab.com/joshraphael/diary/pkg/processors"
 )
 
 func (r Rest) SubmitHandler(w http.ResponseWriter, req *http.Request) {
@@ -26,7 +25,7 @@ func (r Rest) SubmitHandler(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
-		if err = processors.SubmitForm(post); err != nil {
+		if err = r.processor.SubmitForm(post); err != nil {
 			msg := "Error processing submit request: " + err.Error()
 			fmt.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)

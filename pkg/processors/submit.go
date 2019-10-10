@@ -7,7 +7,7 @@ import (
 	"gitlab.com/joshraphael/diary/pkg/post"
 )
 
-func SubmitForm(p post.Post) apierror.IApiError {
+func (prcr Processor) SubmitForm(p post.Post) apierror.IApiError {
 	err := p.Validate()
 	if err != nil {
 		msg := "invalid submit post: " + err.Error()

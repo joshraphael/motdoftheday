@@ -16,3 +16,14 @@ build:
 
 run: build
 	./$(APP_NAME)
+
+db-reset:
+	rm -f diary.db
+	sqlite3 diary.db < sql/schema.sql
+	sqlite3 diary.db < sql/data.sql
+
+db-clean:
+	sqlite3 diary.db < sql/clean.sql
+
+db-populate:
+	sqlite3 diary.db < sql/data.sql

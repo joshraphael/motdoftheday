@@ -7,7 +7,7 @@ import (
 	"gitlab.com/joshraphael/diary/pkg/post"
 )
 
-func SaveForm(p post.Post) apierror.IApiError {
+func (prcr Processor) SaveForm(p post.Post) apierror.IApiError {
 	err := p.Validate()
 	if err != nil {
 		msg := "invalid save post: " + err.Error()
