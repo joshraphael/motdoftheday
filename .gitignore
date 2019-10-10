@@ -1,3 +1,4 @@
 /diary
 /vendor
 *.db
+go.sum
