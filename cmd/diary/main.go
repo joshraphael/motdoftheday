@@ -54,7 +54,6 @@ func main() {
 
 	// Start HTTP Server
 	addr := settings.HOST + ":" + settings.PORT
-	fmt.Println("Serving at: " + addr)
 	server := &http.Server{
 		Addr:    addr,
 		Handler: nil,
@@ -67,7 +66,7 @@ func main() {
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
-
+	fmt.Println("Serving at: " + addr)
 	<-stop
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

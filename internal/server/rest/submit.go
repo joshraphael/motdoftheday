@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"gitlab.com/joshraphael/diary/pkg/apierror"
 	"gitlab.com/joshraphael/diary/pkg/post"
 )
 
@@ -18,7 +19,7 @@ func (r Rest) SubmitHandler(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
-		post := post.New("HTTP")
+		post := post.New(apierror.MethodHTTP)
 		if err := json.Unmarshal(data, &post); err != nil {
 			msg := "Error marshalling sumbit json data: " + err.Error()
 			fmt.Println(msg)

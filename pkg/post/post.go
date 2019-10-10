@@ -4,7 +4,6 @@ import (
 	"errors"
 	"regexp"
 
-	"gitlab.com/joshraphael/diary/pkg/apierror"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -27,23 +26,20 @@ func (p Post) Method() string {
 	return p.method
 }
 
-func (p Post) Validate() apierror.IApiError {
+func (p Post) Validate() error {
 	if err := p.validator.Struct(p); err != nil {
 		msg := "error validating post: " + err.Error()
-		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
-		return apiErr
+		return errors.New(msg)
 	}
 	urlSafe := regexp.MustCompile(`^[a-zA-Z0-9-_ ]{1,40}$`)
 	if !urlSafe.MatchString(p.Title) {
 		msg := "post title '" + p.Title + "' not URL safe"
-		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
-		return apiErr
+		return errors.New(msg)
 	}
 	for i := range p.Tags {
 		if !urlSafe.MatchString(p.Tags[i]) {
 			msg := "post tag '" + p.Tags[i] + "' not URL safe"
-			apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
-			return apiErr
+			return errors.New(msg)
 		}
 	}
 	return nil

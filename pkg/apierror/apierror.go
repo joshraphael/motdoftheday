@@ -13,6 +13,11 @@ type IApiError interface {
 	Code() int
 }
 
+const (
+	MethodHTTP string = "HTTP"
+	MethodGRPC string = "GRPC"
+)
+
 type ApiError struct {
 	IApiError
 	validator *validator.Validate
