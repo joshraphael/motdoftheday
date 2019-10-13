@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"gitlab.com/joshraphael/diary/internal/server/rest"
 	"gitlab.com/joshraphael/diary/pkg/database"
@@ -26,17 +25,18 @@ func main() {
 	db_name := "./" + settings.DB_NAME
 	if _, err := os.Stat(db_name); err != nil {
 		msg := "Database " + db_name + " does not exist: " + err.Error()
-		log.Fatal(msg)
+		log.Fatalln(msg)
 	}
-	db, err := sql.Open("sqlite3", db_name+"?_foreign_keys=on")
+	db, err := sqlx.Open("sqlite3", db_name+"?_foreign_keys=on")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	database, err := database.New(db)
+
+	d, err := database.New(db)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	processor := processors.New(database)
+	processor := processors.New(d)
 	apiHandler := rest.New(v, processor)
 	// Serve static files
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
@@ -60,18 +60,18 @@ func main() {
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
-	fmt.Println("Serving at: " + addr)
+	log.Println("Serving at: " + addr)
 	<-stop
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 }

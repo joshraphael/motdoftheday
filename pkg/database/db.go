@@ -1,15 +1,16 @@
 package database
 
 import (
-	"database/sql"
 	"errors"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Database struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func New(database *sql.DB) (*Database, error) {
+func New(database *sqlx.DB) (*Database, error) {
 	err := database.Ping()
 	if err != nil {
 		msg := "bad ping: " + err.Error()
