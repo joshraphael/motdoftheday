@@ -85,29 +85,29 @@ func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
 func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	err := post.Validate()
 	if err != nil {
-		msg := "cannot validate post in SavePost: " + err.Error()
+		msg := "cannot validate post in CreatePost: " + err.Error()
 		return errors.New(msg)
 	}
 	tx, err := database.db.Beginx()
 	if err != nil {
-		msg := "begin transaction for SavePost: " + err.Error()
+		msg := "begin transaction for CreatePost: " + err.Error()
 		err = tx.Rollback()
 		if err != nil {
-			fatal := "cannot rollback in SavePost: " + msg + ": " + err.Error()
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
 			return errors.New(fatal)
 		}
 		return errors.New(msg)
 	}
 	found, p, err := database.postExists(tx, post)
 	if err != nil {
-		msg := "cannot prepare statement for SavePost: " + err.Error()
+		msg := "cannot prepare statement for CreatePost: " + err.Error()
 		return errors.New(msg)
 	}
 	if BOOL(p.Posted) == db_TRUE {
-		msg := "Post already posted and cannot be edited in SavePost"
+		msg := "Post already posted and cannot be edited in CreatePost"
 		err = tx.Rollback()
 		if err != nil {
-			fatal := "cannot rollback in SavePost: " + msg + ": " + err.Error()
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
 			return errors.New(fatal)
 		}
 		return errors.New(msg)
@@ -117,28 +117,28 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		post_id = p.ID
 		err = database.updatePost(tx, p, posted)
 		if err != nil {
-			msg := "cannot update post in SavePost: " + err.Error()
+			msg := "cannot update post in CreatePost: " + err.Error()
 			return errors.New(msg)
 		}
 	} else {
 		id, err := database.insertPost(tx, post, posted)
 		if err != nil {
-			msg := "cannot insert new post in SavePost: " + err.Error()
+			msg := "cannot insert new post in CreatePost: " + err.Error()
 			return errors.New(msg)
 		}
 		post_id = id
 	}
 	_, err = database.insertPostHistory(tx, post_id, post)
 	if err != nil {
-		msg := "cannot insert post history in SavePost: " + err.Error()
+		msg := "cannot insert post history in CreatePost: " + err.Error()
 		return errors.New(msg)
 	}
 	err = tx.Commit()
 	if err != nil {
-		msg := "cannot commit transaction in SavePost: " + err.Error()
+		msg := "cannot commit transaction in CreatePost: " + err.Error()
 		err = tx.Rollback()
 		if err != nil {
-			fatal := "cannot rollback in SavePost: " + msg + ": " + err.Error()
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
 			return errors.New(fatal)
 		}
 		return errors.New(msg)
