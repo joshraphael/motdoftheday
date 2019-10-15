@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"gitlab.com/joshraphael/diary/pkg/post"
@@ -51,6 +50,14 @@ func (database *Database) GetPostById(id int) (*Post, error) {
 	return &p, nil
 }
 
+func DB_TRUE() BOOL {
+	return db_TRUE
+}
+
+func DB_FALSE() BOOL {
+	return db_FALSE
+}
+
 func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
 	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post WHERE LOWER(url_title) = LOWER($1)`, cols)
@@ -75,7 +82,7 @@ func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
 	return &p, nil
 }
 
-func (database *Database) SavePost(post post.Post) error {
+func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	err := post.Validate()
 	if err != nil {
 		msg := "cannot validate post in SavePost: " + err.Error()
@@ -97,7 +104,7 @@ func (database *Database) SavePost(post post.Post) error {
 		return errors.New(msg)
 	}
 	if BOOL(p.Posted) == db_TRUE {
-		msg := "Post already posted and cannot be edited in SavePost: " + err.Error()
+		msg := "Post already posted and cannot be edited in SavePost"
 		err = tx.Rollback()
 		if err != nil {
 			fatal := "cannot rollback in SavePost: " + msg + ": " + err.Error()
@@ -108,13 +115,13 @@ func (database *Database) SavePost(post post.Post) error {
 	var post_id int64
 	if found {
 		post_id = p.ID
-		err = database.updatePost(tx, p, db_FALSE)
+		err = database.updatePost(tx, p, posted)
 		if err != nil {
 			msg := "cannot update post in SavePost: " + err.Error()
 			return errors.New(msg)
 		}
 	} else {
-		id, err := database.insertPost(tx, post, db_FALSE)
+		id, err := database.insertPost(tx, post, posted)
 		if err != nil {
 			msg := "cannot insert new post in SavePost: " + err.Error()
 			return errors.New(msg)
@@ -140,7 +147,7 @@ func (database *Database) SavePost(post post.Post) error {
 }
 
 func (database *Database) postExists(tx *sqlx.Tx, post post.Post) (bool, *Post, error) {
-	url_title := strings.Join(strings.Split(post.Title, " "), "-")
+	url_title := post.UrlTitle()
 	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post WHERE LOWER(url_title) = LOWER($1)`, cols)
 	stmt, err := tx.Preparex(query)
@@ -171,7 +178,7 @@ func (database *Database) postExists(tx *sqlx.Tx, post post.Post) (bool, *Post, 
 }
 
 func (database *Database) insertPost(tx *sqlx.Tx, post post.Post, posted BOOL) (int64, error) {
-	url_title := strings.Join(strings.Split(post.Title, " "), "-")
+	url_title := post.UrlTitle()
 	cols := `url_title, user_id, title, posted`
 	query := fmt.Sprintf(`INSERT INTO post (%s) VALUES($1, 1, $2, $3)`, cols)
 	stmt, err := tx.Preparex(query)
@@ -273,8 +280,8 @@ func (database *Database) updatePost(tx *sqlx.Tx, db_post *Post, posted BOOL) er
 }
 
 func (database *Database) insertPostHistory(tx *sqlx.Tx, post_id int64, post post.Post) (int64, error) {
-	cols := `post_id, body`
-	query := fmt.Sprintf(`INSERT INTO post_history (%s) VALUES($1, $2)`, cols)
+	cols := `post_id, body, method`
+	query := fmt.Sprintf(`INSERT INTO post_history (%s) VALUES($1, $2, $3)`, cols)
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for insertPostHistory: " + err.Error()
@@ -286,7 +293,7 @@ func (database *Database) insertPostHistory(tx *sqlx.Tx, post_id int64, post pos
 		return -1, errors.New(msg)
 	}
 	defer stmt.Close()
-	res, err := stmt.Exec(post_id, post.Body)
+	res, err := stmt.Exec(post_id, post.Body, post.Method())
 	if err != nil {
 		msg := "cannot execute query in insertPostHistory: " + err.Error()
 		err = tx.Rollback()

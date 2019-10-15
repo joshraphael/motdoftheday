@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"gitlab.com/joshraphael/diary/pkg/apierror"
+	"gitlab.com/joshraphael/diary/pkg/database"
 	"gitlab.com/joshraphael/diary/pkg/post"
 )
 
@@ -14,7 +15,7 @@ func (prcr Processor) SaveForm(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
-	err = prcr.db.SavePost(p)
+	err = prcr.db.CreatePost(p, database.DB_FALSE())
 	if err != nil {
 		msg := "cannot save post: " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())

@@ -14,11 +14,11 @@ INSERT INTO tag (name, user_id) VALUES ("admin", (
     WHERE LOWER(user_name) = "admin"
 ));
 
-INSERT INTO post_history (post_id, body) VALUES((
+INSERT INTO post_history (post_id, body, method) VALUES((
     SELECT id
     FROM post
     WHERE LOWER(url_title) = LOWER("Sample-posT")
-), "<h3>This is a sample blog!</h3>");
+), "<h3>This is a sample blog!</h3>", "HTTP");
 
 INSERT INTO post_tags (post_history_id, tag_id) VALUES(1, (
     SELECT id

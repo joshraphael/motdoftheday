@@ -3,6 +3,7 @@ package post
 import (
 	"errors"
 	"regexp"
+	"strings"
 
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -24,6 +25,10 @@ func New(m string) Post {
 
 func (p Post) Method() string {
 	return p.method
+}
+
+func (p Post) UrlTitle() string {
+	return strings.Join(strings.Split(strings.TrimSpace(p.Title), " "), "-")
 }
 
 func (p Post) Validate() error {

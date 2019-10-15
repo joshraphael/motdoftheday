@@ -33,6 +33,7 @@ CREATE TABLE post_history (
     id          INTEGER NOT NULL CHECK(TYPEOF(id) = 'integer')          PRIMARY KEY AUTOINCREMENT,
     post_id     INTEGER NOT NULL CHECK(TYPEOF(post_id) = 'integer')     REFERENCES post(id),
     body        TEXT    NOT NULL CHECK(TYPEOF(body) = 'text'),
+    method      TEXT    NOT NULL CHECK(TYPEOF(body) = 'text'),
     insert_time INTEGER NOT NULL CHECK(TYPEOF(insert_time) = 'integer') DEFAULT (CAST(strftime('%s', 'now') as integer))
 );
 
