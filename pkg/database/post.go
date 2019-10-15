@@ -98,7 +98,7 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		}
 		return errors.New(msg)
 	}
-	found, p, err := database.postExists(tx, post)
+	found, p, err := database.getPost(tx, post)
 	if err != nil {
 		msg := "cannot prepare statement for CreatePost: " + err.Error()
 		return errors.New(msg)
@@ -114,12 +114,12 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	}
 	var post_id int64
 	if found {
-		post_id = p.ID
 		err = database.updatePost(tx, p, posted)
 		if err != nil {
 			msg := "cannot update post in CreatePost: " + err.Error()
 			return errors.New(msg)
 		}
+		post_id = p.ID
 	} else {
 		id, err := database.insertPost(tx, post, posted)
 		if err != nil {
@@ -128,9 +128,19 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		}
 		post_id = id
 	}
-	_, err = database.insertPostHistory(tx, post_id, post)
+	post_history_id, err := database.insertPostHistory(tx, post_id, post)
 	if err != nil {
 		msg := "cannot insert post history in CreatePost: " + err.Error()
+		return errors.New(msg)
+	}
+	tag_ids, err := database.insertTags(tx, post)
+	if err != nil {
+		msg := "cannot insert tags in CreatePost: " + err.Error()
+		return errors.New(msg)
+	}
+	_, err = database.insertPostTags(tx, *post_history_id, tag_ids)
+	if err != nil {
+		msg := "cannot insert post tags in CreatePost: " + err.Error()
 		return errors.New(msg)
 	}
 	err = tx.Commit()
@@ -146,7 +156,7 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	return nil
 }
 
-func (database *Database) postExists(tx *sqlx.Tx, post post.Post) (bool, *Post, error) {
+func (database *Database) getPost(tx *sqlx.Tx, post post.Post) (bool, *Post, error) {
 	url_title := post.UrlTitle()
 	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post WHERE LOWER(url_title) = LOWER($1)`, cols)
@@ -277,60 +287,4 @@ func (database *Database) updatePost(tx *sqlx.Tx, db_post *Post, posted BOOL) er
 		return errors.New(msg)
 	}
 	return nil
-}
-
-func (database *Database) insertPostHistory(tx *sqlx.Tx, post_id int64, post post.Post) (int64, error) {
-	cols := `post_id, body, method`
-	query := fmt.Sprintf(`INSERT INTO post_history (%s) VALUES($1, $2, $3)`, cols)
-	stmt, err := tx.Preparex(query)
-	if err != nil {
-		msg := "cannot prepare statement for insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return -1, errors.New(fatal)
-		}
-		return -1, errors.New(msg)
-	}
-	defer stmt.Close()
-	res, err := stmt.Exec(post_id, post.Body, post.Method())
-	if err != nil {
-		msg := "cannot execute query in insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return -1, errors.New(fatal)
-		}
-		return -1, errors.New(msg)
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		msg := "cannot get affected rows in insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return -1, errors.New(fatal)
-		}
-		return -1, errors.New(msg)
-	}
-	if rows != 1 {
-		msg := "expected 1 row to be affected in insertPostHistory but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return -1, errors.New(fatal)
-		}
-		return -1, errors.New(msg)
-	}
-	post_history_id, err := res.LastInsertId()
-	if err != nil {
-		msg := "cannot get last insert id in insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return -1, errors.New(fatal)
-		}
-		return -1, errors.New(msg)
-	}
-	return post_history_id, nil
 }

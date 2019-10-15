@@ -28,7 +28,15 @@ func (p Post) Method() string {
 }
 
 func (p Post) UrlTitle() string {
-	return strings.Join(strings.Split(strings.TrimSpace(p.Title), " "), "-")
+	return urlSafe(p.Title)
+}
+
+func (p Post) UrlTags() []string {
+	tags := []string{}
+	for i := range p.Tags {
+		tags = append(tags, urlSafe(p.Tags[i]))
+	}
+	return tags
 }
 
 func (p Post) Validate() error {
@@ -48,4 +56,8 @@ func (p Post) Validate() error {
 		}
 	}
 	return nil
+}
+
+func urlSafe(s string) string {
+	return strings.Join(strings.Split(strings.TrimSpace(s), " "), "-")
 }

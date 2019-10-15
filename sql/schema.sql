@@ -39,7 +39,7 @@ CREATE TABLE post_history (
 
 CREATE TABLE post_tags (
     id              INTEGER NOT NULL CHECK(TYPEOF(id) = 'integer')              PRIMARY KEY AUTOINCREMENT,
-    post_history_id INTEGER NOT NULL CHECK(TYPEOF(post_history_id) = 'integer') REFERENCES post(id),
+    post_history_id INTEGER NOT NULL CHECK(TYPEOF(post_history_id) = 'integer') REFERENCES post_history(id),
     tag_id          INTEGER NOT NULL CHECK(TYPEOF(tag_id) = 'integer')          REFERENCES tag(id),
     insert_time     INTEGER NOT NULL CHECK(TYPEOF(insert_time) = 'integer')     DEFAULT (CAST(strftime('%s', 'now') as integer)),
     UNIQUE(post_history_id, tag_id)
