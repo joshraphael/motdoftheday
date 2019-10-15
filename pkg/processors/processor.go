@@ -1,6 +1,6 @@
 package processors
 
-import "gitlab.com/joshraphael/diary/pkg/database"
+import "gitlab.com/joshraphael/motdoftheday/pkg/database"
 
 type Processor struct {
 	db *database.Database

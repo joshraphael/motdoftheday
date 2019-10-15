@@ -1,4 +1,4 @@
-module gitlab.com/joshraphael/diary
+module gitlab.com/joshraphael/motdoftheday
 
 require (
 	github.com/go-playground/locales v0.12.1 // indirect

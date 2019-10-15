@@ -3,9 +3,9 @@ package processors
 import (
 	"errors"
 
-	"gitlab.com/joshraphael/diary/pkg/apierror"
-	"gitlab.com/joshraphael/diary/pkg/database"
-	"gitlab.com/joshraphael/diary/pkg/post"
+	"gitlab.com/joshraphael/motdoftheday/pkg/apierror"
+	"gitlab.com/joshraphael/motdoftheday/pkg/database"
+	"gitlab.com/joshraphael/motdoftheday/pkg/post"
 )
 
 func (prcr Processor) SubmitForm(p post.Post) apierror.IApiError {

@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"gitlab.com/joshraphael/diary/pkg/apierror"
-	"gitlab.com/joshraphael/diary/pkg/post"
+	"gitlab.com/joshraphael/motdoftheday/pkg/apierror"
+	"gitlab.com/joshraphael/motdoftheday/pkg/post"
 )
 
 func (r Rest) SubmitHandler(w http.ResponseWriter, req *http.Request) {

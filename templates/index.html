@@ -3,7 +3,7 @@
 
 <head>
   <title>
-    Diary
+    MOTD of the day
   </title>
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
   <script type="application/javascript" src="/static/js/vendor/jquery/jquery-3.3.1.min.js">
@@ -14,19 +14,19 @@
     $(document).ready(function () {
       $("#srteditor").srteditor({
         "Submit": function (e) {
-          var submit = { title: $("#diary-title").val(), tags: $("#diary-tags").val().split(","), body: e.data.doc.body.innerHTML };
+          var submit = { title: $("#motdoftheday-title").val(), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/submit", JSON.stringify(submit), function (data) {
-            $("#diary-status").html("");
+            $("#motdoftheday-status").html("");
           }).fail(function (data) {
-            $("#diary-status").html(data.responseText);
+            $("#motdoftheday-status").html(data.responseText);
           })
         },
         "Save": function (e) {
-          var save = { title: $("#diary-title").val(), tags: $("#diary-tags").val().split(","), body: e.data.doc.body.innerHTML };
+          var save = { title: $("#motdoftheday-title").val(), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/save", JSON.stringify(save), function (data) {
-            $("#diary-status").html("");
+            $("#motdoftheday-status").html("");
           }).fail(function (data) {
-            $("#diary-status").html(data.responseText);
+            $("#motdoftheday-status").html(data.responseText);
           })
         }
       });
@@ -36,13 +36,13 @@
 
 <body>
   <div>
-    Title: <input type="text" id="diary-title" \>
+    Title: <input type="text" id="motdoftheday-title" \>
     <br>
-    Tags (Comma separated): <input type="text" id="diary-tags" \>
+    Tags (Comma separated): <input type="text" id="motdoftheday-tags" \>
   </div>
   <iframe id="srteditor">
   </iframe>
-  <div id="diary-status">
+  <div id="motdoftheday-status">
   </div>
 </body>
 

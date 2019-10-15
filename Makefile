@@ -1,4 +1,4 @@
-APP_NAME=diary
+APP_NAME=motdoftheday
 GO=go
 BUILD=$(GO) build
 RUN=$(GO) run
@@ -12,18 +12,18 @@ clean:
 build: export GO111MODULE=on
 build:
 	$(GO) mod vendor
-	$(BUILD) -o $(APP_NAME) ./cmd/diary/main.go
+	$(BUILD) -o $(APP_NAME) ./cmd/$(APP_NAME)/main.go
 
 run: build
 	./$(APP_NAME)
 
 db-reset:
-	rm -f diary.db
-	sqlite3 diary.db < sql/schema.sql
-	sqlite3 diary.db < sql/data.sql
+	rm -f $(APP_NAME).db
+	sqlite3 $(APP_NAME).db < sql/schema.sql
+	sqlite3 $(APP_NAME).db < sql/data.sql
 
 db-clean:
-	sqlite3 diary.db < sql/clean.sql
+	sqlite3 $(APP_NAME).db < sql/clean.sql
 
 db-populate:
-	sqlite3 diary.db < sql/data.sql
+	sqlite3 $(APP_NAME).db < sql/data.sql

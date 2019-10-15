@@ -1,4 +1,4 @@
-/diary
+/motdoftheday
 /vendor
 *.db
 go.sum

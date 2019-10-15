@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"gitlab.com/joshraphael/diary/pkg/post"
+	"gitlab.com/joshraphael/motdoftheday/pkg/post"
 )
 
 type Post struct {

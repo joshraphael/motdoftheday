@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"gitlab.com/joshraphael/diary/pkg/processors"
+	"gitlab.com/joshraphael/motdoftheday/pkg/processors"
 	"gopkg.in/go-playground/validator.v9"
 )
 

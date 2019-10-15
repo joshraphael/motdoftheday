@@ -10,10 +10,10 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"gitlab.com/joshraphael/diary/internal/server/rest"
-	"gitlab.com/joshraphael/diary/pkg/database"
-	"gitlab.com/joshraphael/diary/pkg/processors"
-	"gitlab.com/joshraphael/diary/settings"
+	"gitlab.com/joshraphael/motdoftheday/internal/server/rest"
+	"gitlab.com/joshraphael/motdoftheday/pkg/database"
+	"gitlab.com/joshraphael/motdoftheday/pkg/processors"
+	"gitlab.com/joshraphael/motdoftheday/settings"
 	"gopkg.in/go-playground/validator.v9"
 
 	"github.com/gorilla/mux"

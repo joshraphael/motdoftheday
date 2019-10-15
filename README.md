@@ -1,4 +1,4 @@
-# diary
+# MOTD of the day
 
 Local Rich Text editor to auto post blogs to jekyll website<br>
 <br>
