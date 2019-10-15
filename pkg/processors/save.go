@@ -14,5 +14,11 @@ func (prcr Processor) SaveForm(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
+	err = prcr.db.SavePost(p)
+	if err != nil {
+		msg := "cannot save post: " + err.Error()
+		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
+		return apiErr
+	}
 	return nil
 }
