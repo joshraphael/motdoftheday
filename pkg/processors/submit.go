@@ -21,5 +21,11 @@ func (prcr Processor) SubmitForm(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
+	ae := prcr.generatePost(p)
+	if ae != nil {
+		msg := "cannot generate post: " + ae.Error()
+		apiErr := apierror.New(errors.New(msg), ae.Status(), p.Method())
+		return apiErr
+	}
 	return nil
 }

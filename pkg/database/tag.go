@@ -16,28 +16,33 @@ type Tag struct {
 	InsertTime int64  `db:"insert_time"`
 }
 
-func (database *Database) GetTagById(id int) (*Tag, error) {
-	cols := `id, name, user_id, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM tag WHERE id = $1`, cols)
-	stmt, err := database.db.Preparex(query)
+func (database *Database) GetTagById(tag_id int64) (*Tag, error) {
+	tx, err := database.db.Beginx()
 	if err != nil {
-		msg := "cannot prepare statement for GetTagById: " + err.Error()
+		msg := "cannot begin transaction for GetTagById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetTagById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
 		return nil, errors.New(msg)
 	}
-	defer stmt.Close()
-	row := stmt.QueryRowx(id)
-	var t Tag
-	err = row.StructScan(&t)
+	t, err := database.getTagByID(tx, tag_id)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, nil
-		default:
-			msg := "cannot unmarshal tag from GetTagById: " + err.Error()
-			return nil, errors.New(msg)
-		}
+		fatal := "cannot get tag in GetTagById: " + err.Error()
+		return nil, errors.New(fatal)
 	}
-	return &t, nil
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetTagById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetTagById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	return t, nil
 }
 
 func (database *Database) GetTagByName(name string) (*Tag, error) {
@@ -55,6 +60,16 @@ func (database *Database) GetTagByName(name string) (*Tag, error) {
 	if err != nil {
 		fatal := "cannot get tag in GetTagByName: " + err.Error()
 		return nil, errors.New(fatal)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetTagByName: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetTagByName: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	return t, nil
 }
@@ -81,7 +96,7 @@ func (database *Database) getTagByName(tx *sqlx.Tx, name string) (*Tag, error) {
 		case sql.ErrNoRows:
 			return nil, nil
 		default:
-			msg := "cannot unmarshal tag from GetTagByName: " + err.Error()
+			msg := "cannot unmarshal tag from getTagByName: " + err.Error()
 			err = tx.Rollback()
 			if err != nil {
 				fatal := "cannot rollback in getTagByName: " + msg + ": " + err.Error()
@@ -91,7 +106,40 @@ func (database *Database) getTagByName(tx *sqlx.Tx, name string) (*Tag, error) {
 		}
 	}
 	return &t, nil
+}
 
+func (database *Database) getTagByID(tx *sqlx.Tx, tag_id int64) (*Tag, error) {
+	cols := `id, name, user_id, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM tag WHERE id = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getTagByID: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in getTagByID: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(tag_id)
+	var t Tag
+	err = row.StructScan(&t)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "cannot unmarshal tag from getTagByID: " + err.Error()
+			err = tx.Rollback()
+			if err != nil {
+				fatal := "cannot rollback in getTagByID: " + msg + ": " + err.Error()
+				return nil, errors.New(fatal)
+			}
+			return nil, errors.New(msg)
+		}
+	}
+	return &t, nil
 }
 
 func (database *Database) insertTags(tx *sqlx.Tx, post post.Post) ([]int64, error) {

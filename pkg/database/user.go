@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	ID         int    `db:"id"`
+	ID         int64  `db:"id"`
 	Username   string `db:"user_name"`
 	Firstname  string `db:"first_name"`
 	Lastname   string `db:"last_name"`
@@ -15,7 +15,7 @@ type User struct {
 	InsertTime int64  `db:"insert_time"`
 }
 
-func (database *Database) GetUserById(id int) (*User, error) {
+func (database *Database) GetUserById(id int64) (*User, error) {
 	cols := `id, user_name, first_name, last_name, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM user WHERE id = $1`, cols)
 	stmt, err := database.db.Preparex(query)

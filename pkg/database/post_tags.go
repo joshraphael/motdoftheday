@@ -39,30 +39,91 @@ func (database *Database) GetPostTagById(id int64) (*PostTag, error) {
 	return &pt, nil
 }
 
-func (database *Database) GetPostTagsByPostId(post_id int64) ([]PostTag, error) {
-	cols := `id, post_id, tag_id, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM tag WHERE post_id = $1`, cols)
+func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) {
+	tx, err := database.db.Beginx()
+	if err != nil {
+		msg := "begin transaction for CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	t, err := database.getPostTags(tx, post_history)
+	if err != nil {
+		fatal := "cannot get post tags in GetPostTags: " + err.Error()
+		return nil, errors.New(fatal)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetPostTags: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostTags: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	return t, nil
+}
+
+func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([]Tag, error) {
+	cols := `id, post_history_id, tag_id, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post_tags WHERE post_history_id = $1`, cols)
 	stmt, err := database.db.Preparex(query)
 	if err != nil {
-		msg := "cannot prepare statement for GetPostTagById: " + err.Error()
+		msg := "cannot prepare statement for getPostTags: " + err.Error()
+		rerr := tx.Rollback()
+		if rerr != nil {
+			fatal := "cannot rollback in getPostTags: " + msg + ": " + rerr.Error()
+			return nil, errors.New(fatal)
+		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
-	rows, err := stmt.Queryx(post_id)
+	rows, err := stmt.Queryx(post_history.ID)
 	if err != nil {
-
+		msg := "cannot execute query in getPostTags: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in getPostTags: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	pts := []PostTag{}
 	for rows.Next() {
 		var pt PostTag
 		err = rows.StructScan(&pt)
 		if err != nil {
-			msg := "cannot unmarshal tag from GetPostTagById: " + err.Error()
+			msg := "cannot unmarshal tag from getPostTags: " + err.Error()
+			err = tx.Rollback()
+			if err != nil {
+				fatal := "cannot rollback in getPostTags: " + msg + ": " + err.Error()
+				return nil, errors.New(fatal)
+			}
 			return nil, errors.New(msg)
 		}
 		pts = append(pts, pt)
 	}
-	return pts, nil
+	ts := []Tag{}
+	for i := range pts {
+		tag, err := database.getTagByID(tx, pts[i].TagID)
+		if err != nil {
+			msg := "cannot get tag from getPostTags: " + err.Error()
+			err = tx.Rollback()
+			if err != nil {
+				fatal := "cannot rollback in getPostTags: " + msg + ": " + err.Error()
+				return nil, errors.New(fatal)
+			}
+			return nil, errors.New(msg)
+		}
+		if tag != nil {
+			ts = append(ts, *tag)
+		}
+	}
+	return ts, nil
 }
 
 func (database *Database) insertPostTags(tx *sqlx.Tx, post_history_id int64, tag_ids []int64) ([]int64, error) {
