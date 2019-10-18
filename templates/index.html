@@ -16,7 +16,7 @@
         "Submit": function (e) {
           var submit = { title: $("#motdoftheday-title").val(), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/submit", JSON.stringify(submit), function (data) {
-            $("#motdoftheday-status").html("");
+            $("#motdoftheday-status").html("Post submitted");
           }).fail(function (data) {
             $("#motdoftheday-status").html(data.responseText);
           })
@@ -24,7 +24,7 @@
         "Save": function (e) {
           var save = { title: $("#motdoftheday-title").val(), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/save", JSON.stringify(save), function (data) {
-            $("#motdoftheday-status").html("");
+            $("#motdoftheday-status").html("Post saved");
           }).fail(function (data) {
             $("#motdoftheday-status").html(data.responseText);
           })

@@ -6,7 +6,7 @@ INSERT INTO post (url_title, user_id, title, posted) VALUES(LOWER("Sample-post")
     SELECT id
     FROM user
     WHERE LOWER(user_name) = "admin"
-), "Sample Post!", 0);
+), "Sample Post", 0);
 
 INSERT INTO tag (name, user_id) VALUES ("admin", (
     SELECT id
