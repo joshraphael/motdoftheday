@@ -1,0 +1,10 @@
+stages:
+  - mirror
+
+github:
+  image: debian:stable
+  stage: mirror
+  only:
+    - master
+  script:
+    - bash scripts/github.sh
