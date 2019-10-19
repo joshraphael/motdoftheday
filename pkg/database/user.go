@@ -51,30 +51,6 @@ func (database *Database) GetUserById(id int64) (*User, error) {
 	return u, nil
 }
 
-func (database *Database) getUserById(tx *sqlx.Tx, id int64) (*User, error) {
-	cols := `id, user_name, first_name, last_name, update_time, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM user WHERE id = $1`, cols)
-	stmt, err := tx.Preparex(query)
-	if err != nil {
-		msg := "cannot prepare statement for getUserById: " + err.Error()
-		return nil, errors.New(msg)
-	}
-	defer stmt.Close()
-	row := stmt.QueryRowx(id)
-	var u User
-	err = row.StructScan(&u)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, nil
-		default:
-			msg := "cannot unmarshal user from getUserById: " + err.Error()
-			return nil, errors.New(msg)
-		}
-	}
-	return &u, nil
-}
-
 func (database *Database) GetUserByUsername(username string) (*User, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
@@ -107,6 +83,30 @@ func (database *Database) GetUserByUsername(username string) (*User, error) {
 		return nil, errors.New(msg)
 	}
 	return u, nil
+}
+
+func (database *Database) getUserById(tx *sqlx.Tx, id int64) (*User, error) {
+	cols := `id, user_name, first_name, last_name, update_time, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM user WHERE id = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getUserById: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(id)
+	var u User
+	err = row.StructScan(&u)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "cannot unmarshal user from getUserById: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &u, nil
 }
 
 func (database *Database) getUserByUsername(tx *sqlx.Tx, username string) (*User, error) {

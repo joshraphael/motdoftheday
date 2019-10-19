@@ -26,6 +26,14 @@ const (
 	db_FALSE BOOL = 0
 )
 
+func DB_TRUE() BOOL {
+	return db_TRUE
+}
+
+func DB_FALSE() BOOL {
+	return db_FALSE
+}
+
 func (database *Database) GetPostById(id int) (*Post, error) {
 	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post WHERE id = $1`, cols)
@@ -48,14 +56,6 @@ func (database *Database) GetPostById(id int) (*Post, error) {
 		}
 	}
 	return &p, nil
-}
-
-func DB_TRUE() BOOL {
-	return db_TRUE
-}
-
-func DB_FALSE() BOOL {
-	return db_FALSE
 }
 
 func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
@@ -85,54 +85,6 @@ func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
 		return nil, errors.New(msg)
 	}
 	return p, nil
-}
-
-func (database *Database) getPostByUrlTitle(tx *sqlx.Tx, url_title string) (*Post, error) {
-	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM post WHERE LOWER(url_title) = LOWER($1)`, cols)
-	stmt, err := tx.Preparex(query)
-	if err != nil {
-		msg := "cannot prepare statement for getPostByUrlTitle: " + err.Error()
-		return nil, errors.New(msg)
-	}
-	defer stmt.Close()
-	row := stmt.QueryRowx(url_title)
-	var p Post
-	err = row.StructScan(&p)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, nil
-		default:
-			msg := "cannot unmarshal post from getPostByUrlTitle: " + err.Error()
-			return nil, errors.New(msg)
-		}
-	}
-	return &p, nil
-}
-
-func (database *Database) getPostById(tx *sqlx.Tx, id int64) (*Post, error) {
-	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM post WHERE id = $1`, cols)
-	stmt, err := tx.Preparex(query)
-	if err != nil {
-		msg := "cannot prepare statement for getPostById: " + err.Error()
-		return nil, errors.New(msg)
-	}
-	defer stmt.Close()
-	row := stmt.QueryRowx(id)
-	var p Post
-	err = row.StructScan(&p)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, nil
-		default:
-			msg := "cannot unmarshal post from getPostById: " + err.Error()
-			return nil, errors.New(msg)
-		}
-	}
-	return &p, nil
 }
 
 func (database *Database) CreatePost(post post.Post, posted BOOL) error {
@@ -257,6 +209,54 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		return errors.New(msg)
 	}
 	return nil
+}
+
+func (database *Database) getPostByUrlTitle(tx *sqlx.Tx, url_title string) (*Post, error) {
+	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post WHERE LOWER(url_title) = LOWER($1)`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostByUrlTitle: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(url_title)
+	var p Post
+	err = row.StructScan(&p)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "cannot unmarshal post from getPostByUrlTitle: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &p, nil
+}
+
+func (database *Database) getPostById(tx *sqlx.Tx, id int64) (*Post, error) {
+	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post WHERE id = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostById: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(id)
+	var p Post
+	err = row.StructScan(&p)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "cannot unmarshal post from getPostById: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &p, nil
 }
 
 func (database *Database) getPost(tx *sqlx.Tx, post post.Post) (bool, *Post, error) {

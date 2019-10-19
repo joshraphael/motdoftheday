@@ -49,30 +49,6 @@ func (database *Database) GetPostCategoryById(id int64) (*PostCategory, error) {
 	return pc, nil
 }
 
-func (database *Database) getPostCategoryById(tx *sqlx.Tx, id int64) (*PostCategory, error) {
-	cols := `id, post_id, category_id, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM category WHERE id = $1`, cols)
-	stmt, err := tx.Preparex(query)
-	if err != nil {
-		msg := "cannot prepare statement for getPostCategoryById: " + err.Error()
-		return nil, errors.New(msg)
-	}
-	defer stmt.Close()
-	row := stmt.QueryRowx(id)
-	var pc PostCategory
-	err = row.StructScan(&pc)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, nil
-		default:
-			msg := "annot unmarshal category from getPostCategoryById: " + err.Error()
-			return nil, errors.New(msg)
-		}
-	}
-	return &pc, nil
-}
-
 func (database *Database) GetPostCategories(post_history *PostHistory) ([]Category, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
@@ -105,6 +81,30 @@ func (database *Database) GetPostCategories(post_history *PostHistory) ([]Catego
 		return nil, errors.New(msg)
 	}
 	return pc, nil
+}
+
+func (database *Database) getPostCategoryById(tx *sqlx.Tx, id int64) (*PostCategory, error) {
+	cols := `id, post_id, category_id, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM category WHERE id = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostCategoryById: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(id)
+	var pc PostCategory
+	err = row.StructScan(&pc)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "annot unmarshal category from getPostCategoryById: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &pc, nil
 }
 
 func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHistory) ([]Category, error) {

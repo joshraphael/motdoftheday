@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -31,7 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
+	defer db.Close()
 	d, err := database.New(db)
 	if err != nil {
 		log.Fatalln(err)
@@ -59,19 +60,22 @@ func main() {
 		Handler: nil,
 	}
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalln(err)
 		}
 	}()
 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	log.Println("Serving at: " + addr)
 	<-stop
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	defer func() {
+		cancel()
+	}()
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalln(err)
 	}
+	log.Println("Server Shutdown Properly")
 }

@@ -15,30 +15,6 @@ type PostTag struct {
 	InsertTime int64 `db:"insert_time"`
 }
 
-func (database *Database) getPostTagById(tx *sqlx.Tx, id int64) (*PostTag, error) {
-	cols := `id, post_id, tag_id, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM tag WHERE id = $1`, cols)
-	stmt, err := tx.Preparex(query)
-	if err != nil {
-		msg := "cannot prepare statement for getPostTagById: " + err.Error()
-		return nil, errors.New(msg)
-	}
-	defer stmt.Close()
-	row := stmt.QueryRowx(id)
-	var pt PostTag
-	err = row.StructScan(&pt)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, nil
-		default:
-			msg := "cannot unmarshal tag from getPostTagById: " + err.Error()
-			return nil, errors.New(msg)
-		}
-	}
-	return &pt, nil
-}
-
 func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
@@ -71,6 +47,30 @@ func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) 
 		return nil, errors.New(msg)
 	}
 	return t, nil
+}
+
+func (database *Database) getPostTagById(tx *sqlx.Tx, id int64) (*PostTag, error) {
+	cols := `id, post_id, tag_id, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM tag WHERE id = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostTagById: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(id)
+	var pt PostTag
+	err = row.StructScan(&pt)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "cannot unmarshal tag from getPostTagById: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &pt, nil
 }
 
 func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([]Tag, error) {

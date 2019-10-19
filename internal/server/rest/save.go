@@ -2,8 +2,8 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"gitlab.com/joshraphael/motdoftheday/pkg/apierror"
@@ -15,25 +15,25 @@ func (r Rest) SaveHandler(w http.ResponseWriter, req *http.Request) {
 		data, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			msg := "Error reading save request data: " + err.Error()
-			fmt.Println(msg)
+			log.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 		post := post.New(apierror.MethodHTTP)
 		if err := json.Unmarshal(data, &post); err != nil {
 			msg := "Error marshalling save json data: " + err.Error()
-			fmt.Println(msg)
+			log.Println(msg)
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 		if apiErr := r.processor.SaveForm(post); apiErr != nil {
 			msg := "Error processing save request: " + apiErr.Error()
-			fmt.Println(msg)
+			log.Println(msg)
 			http.Error(w, msg, apiErr.Code())
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		fmt.Println("Saved post")
+		log.Println("Saved post")
 		return
 	}
 }
