@@ -15,12 +15,12 @@ type PostTag struct {
 	InsertTime int64 `db:"insert_time"`
 }
 
-func (database *Database) GetPostTagById(id int64) (*PostTag, error) {
+func (database *Database) getPostTagById(tx *sqlx.Tx, id int64) (*PostTag, error) {
 	cols := `id, post_id, tag_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM tag WHERE id = $1`, cols)
-	stmt, err := database.db.Preparex(query)
+	stmt, err := tx.Preparex(query)
 	if err != nil {
-		msg := "cannot prepare statement for GetPostTagById: " + err.Error()
+		msg := "cannot prepare statement for getPostTagById: " + err.Error()
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -32,7 +32,7 @@ func (database *Database) GetPostTagById(id int64) (*PostTag, error) {
 		case sql.ErrNoRows:
 			return nil, nil
 		default:
-			msg := "cannot unmarshal tag from GetPostTagById: " + err.Error()
+			msg := "cannot unmarshal tag from getPostTagById: " + err.Error()
 			return nil, errors.New(msg)
 		}
 	}
@@ -42,18 +42,23 @@ func (database *Database) GetPostTagById(id int64) (*PostTag, error) {
 func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
-		msg := "begin transaction for CreatePost: " + err.Error()
+		msg := "begin transaction for GetPostTags: " + err.Error()
 		err = tx.Rollback()
 		if err != nil {
-			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			fatal := "cannot rollback in GetPostTags: " + msg + ": " + err.Error()
 			return nil, errors.New(fatal)
 		}
 		return nil, errors.New(msg)
 	}
 	t, err := database.getPostTags(tx, post_history)
 	if err != nil {
-		fatal := "cannot get post tags in GetPostTags: " + err.Error()
-		return nil, errors.New(fatal)
+		msg := "cannot get post tags in GetPostTags: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostTags: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -71,25 +76,15 @@ func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) 
 func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([]Tag, error) {
 	cols := `id, post_history_id, tag_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post_tags WHERE post_history_id = $1`, cols)
-	stmt, err := database.db.Preparex(query)
+	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for getPostTags: " + err.Error()
-		rerr := tx.Rollback()
-		if rerr != nil {
-			fatal := "cannot rollback in getPostTags: " + msg + ": " + rerr.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	rows, err := stmt.Queryx(post_history.ID)
 	if err != nil {
 		msg := "cannot execute query in getPostTags: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in getPostTags: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	pts := []PostTag{}
@@ -98,11 +93,6 @@ func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([
 		err = rows.StructScan(&pt)
 		if err != nil {
 			msg := "cannot unmarshal tag from getPostTags: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in getPostTags: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		pts = append(pts, pt)
@@ -112,11 +102,6 @@ func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([
 		tag, err := database.getTagByID(tx, pts[i].TagID)
 		if err != nil {
 			msg := "cannot get tag from getPostTags: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in getPostTags: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		if tag != nil {
@@ -133,11 +118,6 @@ func (database *Database) insertPostTags(tx *sqlx.Tx, post_history_id int64, tag
 		post_tag_id, err := database.insertPostTag(tx, post_history_id, tag_id)
 		if err != nil {
 			msg := "cannot insert post tag for insertPostTags: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in insertPostTags: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		post_tag_ids = append(post_tag_ids, *post_tag_id)
@@ -152,51 +132,26 @@ func (database *Database) insertPostTag(tx *sqlx.Tx, post_history_id int64, tag_
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for insertPostTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	res, err := stmt.Exec(post_history_id, tag_id)
 	if err != nil {
 		msg := "cannot execute query in insertPostTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		msg := "cannot get affected rows in insertPostTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	if rows != 1 {
 		msg := "expected 1 row to be affected in insertPostTag but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	post_tag_id, err := res.LastInsertId()
 	if err != nil {
 		msg := "cannot get last insert id in insertPostTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	return &post_tag_id, nil

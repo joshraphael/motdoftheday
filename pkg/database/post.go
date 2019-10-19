@@ -59,11 +59,40 @@ func DB_FALSE() BOOL {
 }
 
 func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
+	tx, err := database.db.Beginx()
+	if err != nil {
+		msg := "begin transaction for GetPostByUrlTitle: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostByUrlTitle: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	p, err := database.getPostByUrlTitle(tx, url_title)
+	if err != nil {
+		fatal := "cannot get post in GetPostByUrlTitle: " + err.Error()
+		return nil, errors.New(fatal)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetPostByUrlTitle: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostByUrlTitle: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	return p, nil
+}
+
+func (database *Database) getPostByUrlTitle(tx *sqlx.Tx, url_title string) (*Post, error) {
 	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post WHERE LOWER(url_title) = LOWER($1)`, cols)
-	stmt, err := database.db.Preparex(query)
+	stmt, err := tx.Preparex(query)
 	if err != nil {
-		msg := "cannot prepare statement for GetPostByUrlTitle: " + err.Error()
+		msg := "cannot prepare statement for getPostByUrlTitle: " + err.Error()
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -75,7 +104,31 @@ func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
 		case sql.ErrNoRows:
 			return nil, nil
 		default:
-			msg := "cannot unmarshal post from GetPostByUrlTitle: " + err.Error()
+			msg := "cannot unmarshal post from getPostByUrlTitle: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &p, nil
+}
+
+func (database *Database) getPostById(tx *sqlx.Tx, id int64) (*Post, error) {
+	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post WHERE id = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostById: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(id)
+	var p Post
+	err = row.StructScan(&p)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, nil
+		default:
+			msg := "cannot unmarshal post from getPostById: " + err.Error()
 			return nil, errors.New(msg)
 		}
 	}
@@ -101,6 +154,11 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	found, p, err := database.getPost(tx, post)
 	if err != nil {
 		msg := "cannot prepare statement for CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return errors.New(fatal)
+		}
 		return errors.New(msg)
 	}
 	if BOOL(p.Posted) == db_TRUE {
@@ -117,6 +175,11 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		err = database.updatePost(tx, p, posted)
 		if err != nil {
 			msg := "cannot update post in CreatePost: " + err.Error()
+			err = tx.Rollback()
+			if err != nil {
+				fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+				return errors.New(fatal)
+			}
 			return errors.New(msg)
 		}
 		post_id = p.ID
@@ -124,6 +187,11 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		id, err := database.insertPost(tx, post, posted)
 		if err != nil {
 			msg := "cannot insert new post in CreatePost: " + err.Error()
+			err = tx.Rollback()
+			if err != nil {
+				fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+				return errors.New(fatal)
+			}
 			return errors.New(msg)
 		}
 		post_id = *id
@@ -131,26 +199,51 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	post_history_id, err := database.insertPostHistory(tx, post_id, post)
 	if err != nil {
 		msg := "cannot insert post history in CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return errors.New(fatal)
+		}
 		return errors.New(msg)
 	}
 	category_ids, err := database.insertCategories(tx, post)
 	if err != nil {
 		msg := "cannot insert categories in CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return errors.New(fatal)
+		}
 		return errors.New(msg)
 	}
 	tag_ids, err := database.insertTags(tx, post)
 	if err != nil {
 		msg := "cannot insert tags in CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return errors.New(fatal)
+		}
 		return errors.New(msg)
 	}
 	_, err = database.insertPostCategories(tx, *post_history_id, category_ids)
 	if err != nil {
 		msg := "cannot insert post categories in CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return errors.New(fatal)
+		}
 		return errors.New(msg)
 	}
 	_, err = database.insertPostTags(tx, *post_history_id, tag_ids)
 	if err != nil {
 		msg := "cannot insert post tags in CreatePost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			return errors.New(fatal)
+		}
 		return errors.New(msg)
 	}
 	err = tx.Commit()
@@ -173,11 +266,6 @@ func (database *Database) getPost(tx *sqlx.Tx, post post.Post) (bool, *Post, err
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for postExists: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in postExists: " + msg + ": " + err.Error()
-			return false, nil, errors.New(fatal)
-		}
 		return false, nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -204,51 +292,26 @@ func (database *Database) insertPost(tx *sqlx.Tx, post post.Post, posted BOOL) (
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for insertPost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPost: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	res, err := stmt.Exec(url_title, post.Title, posted)
 	if err != nil {
 		msg := "cannot execute query in insertPost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPost: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		msg := "cannot get affected rows in insertPost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPost: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	if rows != 1 {
 		msg := "expected 1 row to be affected in insertPost but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPost: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	post_id, err := res.LastInsertId()
 	if err != nil {
 		msg := "cannot get last insert id in insertPost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPost: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	return &post_id, nil
@@ -259,41 +322,21 @@ func (database *Database) updatePost(tx *sqlx.Tx, db_post *Post, posted BOOL) er
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for updatePost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in updatePost: " + msg + ": " + err.Error()
-			return errors.New(fatal)
-		}
 		return errors.New(msg)
 	}
 	defer stmt.Close()
 	res, err := stmt.Exec(posted, db_post.ID)
 	if err != nil {
 		msg := "cannot execute query in updatePost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in updatePost: " + msg + ": " + err.Error()
-			return errors.New(fatal)
-		}
 		return errors.New(msg)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		msg := "cannot get affected rows in updatePost: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in updatePost: " + msg + ": " + err.Error()
-			return errors.New(fatal)
-		}
 		return errors.New(msg)
 	}
 	if rows != 1 {
 		msg := "expected 1 row to be affected in updatePost but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in updatePost: " + msg + ": " + err.Error()
-			return errors.New(fatal)
-		}
 		return errors.New(msg)
 	}
 	return nil

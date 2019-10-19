@@ -16,11 +16,45 @@ type PostCategory struct {
 }
 
 func (database *Database) GetPostCategoryById(id int64) (*PostCategory, error) {
+	tx, err := database.db.Beginx()
+	if err != nil {
+		msg := "begin transaction for GetPostCategoryById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostCategoryById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	pc, err := database.getPostCategoryById(tx, id)
+	if err != nil {
+		msg := "cannot get post categories in GetPostCategoryById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostCategoryById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetPostCategoryById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostCategoryById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	return pc, nil
+}
+
+func (database *Database) getPostCategoryById(tx *sqlx.Tx, id int64) (*PostCategory, error) {
 	cols := `id, post_id, category_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM category WHERE id = $1`, cols)
-	stmt, err := database.db.Preparex(query)
+	stmt, err := tx.Preparex(query)
 	if err != nil {
-		msg := "cannot prepare statement for GetPostCategoryById: " + err.Error()
+		msg := "cannot prepare statement for getPostCategoryById: " + err.Error()
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -32,7 +66,7 @@ func (database *Database) GetPostCategoryById(id int64) (*PostCategory, error) {
 		case sql.ErrNoRows:
 			return nil, nil
 		default:
-			msg := "cannot unmarshal category from GetPostCategoryById: " + err.Error()
+			msg := "annot unmarshal category from getPostCategoryById: " + err.Error()
 			return nil, errors.New(msg)
 		}
 	}
@@ -42,18 +76,23 @@ func (database *Database) GetPostCategoryById(id int64) (*PostCategory, error) {
 func (database *Database) GetPostCategories(post_history *PostHistory) ([]Category, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
-		msg := "begin transaction for CreatePost: " + err.Error()
+		msg := "begin transaction for GetPostCategories: " + err.Error()
 		err = tx.Rollback()
 		if err != nil {
-			fatal := "cannot rollback in CreatePost: " + msg + ": " + err.Error()
+			fatal := "cannot rollback in GetPostCategories: " + msg + ": " + err.Error()
 			return nil, errors.New(fatal)
 		}
 		return nil, errors.New(msg)
 	}
-	c, err := database.getPostCategories(tx, post_history)
+	pc, err := database.getPostCategories(tx, post_history)
 	if err != nil {
-		fatal := "cannot get post categories in GetPostCategories: " + err.Error()
-		return nil, errors.New(fatal)
+		msg := "cannot get post categories in GetPostCategories: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostCategories: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -65,31 +104,21 @@ func (database *Database) GetPostCategories(post_history *PostHistory) ([]Catego
 		}
 		return nil, errors.New(msg)
 	}
-	return c, nil
+	return pc, nil
 }
 
 func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHistory) ([]Category, error) {
 	cols := `id, post_history_id, category_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post_categories WHERE post_history_id = $1`, cols)
-	stmt, err := database.db.Preparex(query)
+	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for getPostCategories: " + err.Error()
-		rerr := tx.Rollback()
-		if rerr != nil {
-			fatal := "cannot rollback in getPostCategories: " + msg + ": " + rerr.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	rows, err := stmt.Queryx(post_history.ID)
 	if err != nil {
 		msg := "cannot execute query in getPostCategories: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in getPostCategories: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	pcs := []PostCategory{}
@@ -98,11 +127,6 @@ func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHisto
 		err = rows.StructScan(&pc)
 		if err != nil {
 			msg := "cannot unmarshal category from getPostCategories: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in getPostCategories: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		pcs = append(pcs, pc)
@@ -112,11 +136,6 @@ func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHisto
 		category, err := database.getCategoryByID(tx, pcs[i].CategoryID)
 		if err != nil {
 			msg := "cannot get category from getPostCategories: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in getPostCategories: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		if category != nil {
@@ -133,11 +152,6 @@ func (database *Database) insertPostCategories(tx *sqlx.Tx, post_history_id int6
 		post_category_id, err := database.insertPostCategory(tx, post_history_id, category_id)
 		if err != nil {
 			msg := "cannot insert post category for insertPostCategories: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in insertPostCategories: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		post_category_ids = append(post_category_ids, *post_category_id)
@@ -152,51 +166,26 @@ func (database *Database) insertPostCategory(tx *sqlx.Tx, post_history_id int64,
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for insertPostCategory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostCategory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	res, err := stmt.Exec(post_history_id, category_id)
 	if err != nil {
 		msg := "cannot execute query in insertPostCategory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostCategory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		msg := "cannot get affected rows in insertPostCategory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostCategory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	if rows != 1 {
 		msg := "expected 1 row to be affected in insertPostCategory but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostCategory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	post_category_id, err := res.LastInsertId()
 	if err != nil {
 		msg := "cannot get last insert id in insertPostCategory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostCategory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	return &post_category_id, nil

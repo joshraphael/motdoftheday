@@ -30,8 +30,13 @@ func (database *Database) GetLatestPost(post *Post) (*PostHistory, error) {
 	}
 	ph, err := database.getLatestPost(tx, post)
 	if err != nil {
-		fatal := "cannot get tag in GetLatestPost: " + err.Error()
-		return nil, errors.New(fatal)
+		msg := "cannot get tag in GetLatestPost: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetLatestPost: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -52,11 +57,6 @@ func (database *Database) getLatestPost(tx *sqlx.Tx, post *Post) (*PostHistory, 
 	stmt, err := database.db.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for getLatestPost: " + err.Error()
-		rerr := tx.Rollback()
-		if rerr != nil {
-			fatal := "cannot rollback in getLatestPost: " + msg + ": " + rerr.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -69,7 +69,7 @@ func (database *Database) getLatestPost(tx *sqlx.Tx, post *Post) (*PostHistory, 
 			msg := "no post history found for this post: " + err.Error()
 			return nil, errors.New(msg)
 		default:
-			msg := "cannot unmarshal post from postExists: " + err.Error()
+			msg := "cannot unmarshal post from getLatestPost: " + err.Error()
 			return nil, errors.New(msg)
 		}
 	}
@@ -82,51 +82,26 @@ func (database *Database) insertPostHistory(tx *sqlx.Tx, post_id int64, post pos
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	res, err := stmt.Exec(post_id, post.Body, post.Method())
 	if err != nil {
 		msg := "cannot execute query in insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		msg := "cannot get affected rows in insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	if rows != 1 {
 		msg := "expected 1 row to be affected in insertPostHistory but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	post_history_id, err := res.LastInsertId()
 	if err != nil {
 		msg := "cannot get last insert id in insertPostHistory: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertPostHistory: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	return &post_history_id, nil

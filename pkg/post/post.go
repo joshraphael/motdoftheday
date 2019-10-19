@@ -33,17 +33,27 @@ func (p Post) UrlTitle() string {
 }
 
 func (p Post) UrlTags() []string {
+	unique_tags := make(map[string]string)
 	tags := []string{}
 	for i := range p.Tags {
-		tags = append(tags, urlSafe(p.Tags[i]))
+		url_safe_tag := urlSafe(p.Tags[i])
+		if _, exists := unique_tags[url_safe_tag]; !exists {
+			tags = append(tags, urlSafe(p.Tags[i]))
+			unique_tags[url_safe_tag] = p.Tags[i]
+		}
 	}
 	return tags
 }
 
 func (p Post) UrlCategories() []string {
+	unique_categories := make(map[string]string)
 	categories := []string{}
 	for i := range p.Categories {
-		categories = append(categories, urlSafe(p.Categories[i]))
+		url_safe_category := urlSafe(p.Categories[i])
+		if _, exists := unique_categories[url_safe_category]; !exists {
+			categories = append(categories, url_safe_category)
+			unique_categories[url_safe_category] = p.Categories[i]
+		}
 	}
 	return categories
 }

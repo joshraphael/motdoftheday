@@ -29,8 +29,13 @@ func (database *Database) GetTagById(tag_id int64) (*Tag, error) {
 	}
 	t, err := database.getTagByID(tx, tag_id)
 	if err != nil {
-		fatal := "cannot get tag in GetTagById: " + err.Error()
-		return nil, errors.New(fatal)
+		msg := "cannot get tag in GetTagById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetTagById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -58,8 +63,13 @@ func (database *Database) GetTagByName(name string) (*Tag, error) {
 	}
 	t, err := database.getTagByName(tx, name)
 	if err != nil {
-		fatal := "cannot get tag in GetTagByName: " + err.Error()
-		return nil, errors.New(fatal)
+		msg := "cannot get tag in GetTagByName: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetTagByName: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -80,11 +90,6 @@ func (database *Database) getTagByName(tx *sqlx.Tx, name string) (*Tag, error) {
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for getTagByName: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in getTagByName: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -97,11 +102,6 @@ func (database *Database) getTagByName(tx *sqlx.Tx, name string) (*Tag, error) {
 			return nil, nil
 		default:
 			msg := "cannot unmarshal tag from getTagByName: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in getTagByName: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 	}
@@ -114,11 +114,6 @@ func (database *Database) getTagByID(tx *sqlx.Tx, tag_id int64) (*Tag, error) {
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for getTagByID: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in getTagByID: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
@@ -131,11 +126,6 @@ func (database *Database) getTagByID(tx *sqlx.Tx, tag_id int64) (*Tag, error) {
 			return nil, nil
 		default:
 			msg := "cannot unmarshal tag from getTagByID: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in getTagByID: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 	}
@@ -150,11 +140,6 @@ func (database *Database) insertTags(tx *sqlx.Tx, post post.Post) ([]int64, erro
 		tag, err := database.getTagByName(tx, name)
 		if err != nil {
 			msg := "cannot get tag for insertTags: " + err.Error()
-			err = tx.Rollback()
-			if err != nil {
-				fatal := "cannot rollback in insertTags: " + msg + ": " + err.Error()
-				return nil, errors.New(fatal)
-			}
 			return nil, errors.New(msg)
 		}
 		if tag != nil {
@@ -163,11 +148,6 @@ func (database *Database) insertTags(tx *sqlx.Tx, post post.Post) ([]int64, erro
 			tag_id, err := database.insertTag(tx, name)
 			if err != nil {
 				msg := "cannot insert tag for insertTags: " + err.Error()
-				err = tx.Rollback()
-				if err != nil {
-					fatal := "cannot rollback in insertTags: " + msg + ": " + err.Error()
-					return nil, errors.New(fatal)
-				}
 				return nil, errors.New(msg)
 			}
 			tag_ids = append(tag_ids, *tag_id)
@@ -182,51 +162,26 @@ func (database *Database) insertTag(tx *sqlx.Tx, name string) (*int64, error) {
 	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for insertTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	defer stmt.Close()
 	res, err := stmt.Exec(name)
 	if err != nil {
 		msg := "cannot execute query in insertTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		msg := "cannot get affected rows in insertTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	if rows != 1 {
 		msg := "expected 1 row to be affected in insertTag but " + string(rows) + " rows were: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	tag_id, err := res.LastInsertId()
 	if err != nil {
 		msg := "cannot get last insert id in insertTag: " + err.Error()
-		err = tx.Rollback()
-		if err != nil {
-			fatal := "cannot rollback in insertTag: " + msg + ": " + err.Error()
-			return nil, errors.New(fatal)
-		}
 		return nil, errors.New(msg)
 	}
 	return &tag_id, nil
