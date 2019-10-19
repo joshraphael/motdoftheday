@@ -39,18 +39,17 @@ func main() {
 	}
 	processor := processors.New(d)
 	apiHandler := rest.New(v, processor)
+	r.HandleFunc("/", apiHandler.HomeHandler).Methods("GET")
+	r.HandleFunc("/drafts", apiHandler.DraftsHandler).Methods("GET")
+	r.HandleFunc("/edit", apiHandler.EditHandler).Methods("GET")
 	// Serve static files
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	r.PathPrefix("/static").Handler(s)
+	r.PathPrefix("/static").Handler(s).Methods("GET")
 
 	// API
 	api := r.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/submit", apiHandler.SubmitHandler)
-	api.HandleFunc("/save", apiHandler.SaveHandler)
-
-	// Render templates
-	t := http.FileServer(http.Dir("./templates/"))
-	r.PathPrefix("/").Handler(t)
+	api.HandleFunc("/submit", apiHandler.SubmitHandler).Methods("POST")
+	api.HandleFunc("/save", apiHandler.SaveHandler).Methods("POST")
 	http.Handle("/", r)
 
 	// Start HTTP Server
