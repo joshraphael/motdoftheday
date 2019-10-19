@@ -9,11 +9,12 @@ import (
 )
 
 type Post struct {
-	validator *validator.Validate
-	method    string
-	Title     string   `json:"title" validate:"required"`
-	Tags      []string `json:"tags" validate:"required,min=1,max=10"`
-	Body      string   `json:"body" validate:"required"`
+	validator  *validator.Validate
+	method     string
+	Title      string   `json:"title" validate:"required"`
+	Tags       []string `json:"tags" validate:"required,min=1,max=10"`
+	Categories []string `json:"categories" validate:"required,min=1,max=10"`
+	Body       string   `json:"body" validate:"required"`
 }
 
 func New(m string) Post {
@@ -39,6 +40,14 @@ func (p Post) UrlTags() []string {
 	return tags
 }
 
+func (p Post) UrlCategories() []string {
+	categories := []string{}
+	for i := range p.Categories {
+		categories = append(categories, urlSafe(p.Categories[i]))
+	}
+	return categories
+}
+
 func (p Post) Validate() error {
 	if err := p.validator.Struct(p); err != nil {
 		msg := "error validating post: " + err.Error()
@@ -52,6 +61,12 @@ func (p Post) Validate() error {
 	for i := range p.Tags {
 		if !urlSafe.MatchString(p.Tags[i]) {
 			msg := "post tag '" + p.Tags[i] + "' not URL safe"
+			return errors.New(msg)
+		}
+	}
+	for i := range p.Categories {
+		if !urlSafe.MatchString(p.Categories[i]) {
+			msg := "post category '" + p.Categories[i] + "' not URL safe"
 			return errors.New(msg)
 		}
 	}

@@ -18,6 +18,7 @@ type generatedPost struct {
 	Post       *database.Post
 	User       *database.User
 	LatestPost *database.PostHistory
+	Categories []database.Category
 	Tags       []database.Tag
 }
 
@@ -53,6 +54,17 @@ func (prcr Processor) generatePost(p post.Post) apierror.IApiError {
 	}
 	if latest_post == nil {
 		msg := "no post history found " + p.UrlTitle() + ": " + err.Error()
+		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
+		return apiErr
+	}
+	categories, err := prcr.db.GetPostCategories(latest_post)
+	if err != nil {
+		msg := "error getting post categories " + p.UrlTitle() + ": " + err.Error()
+		apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
+		return apiErr
+	}
+	if len(categories) == 0 {
+		msg := "no categories for post " + p.UrlTitle()
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
@@ -97,6 +109,7 @@ func (prcr Processor) generatePost(p post.Post) apierror.IApiError {
 		Post:       db_post,
 		User:       user,
 		LatestPost: latest_post,
+		Categories: categories,
 		Tags:       tags,
 	}
 	f, err := os.Create(filename)

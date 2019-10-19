@@ -133,9 +133,19 @@ func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 		msg := "cannot insert post history in CreatePost: " + err.Error()
 		return errors.New(msg)
 	}
+	category_ids, err := database.insertCategories(tx, post)
+	if err != nil {
+		msg := "cannot insert categories in CreatePost: " + err.Error()
+		return errors.New(msg)
+	}
 	tag_ids, err := database.insertTags(tx, post)
 	if err != nil {
 		msg := "cannot insert tags in CreatePost: " + err.Error()
+		return errors.New(msg)
+	}
+	_, err = database.insertPostCategories(tx, *post_history_id, category_ids)
+	if err != nil {
+		msg := "cannot insert post categories in CreatePost: " + err.Error()
 		return errors.New(msg)
 	}
 	_, err = database.insertPostTags(tx, *post_history_id, tag_ids)

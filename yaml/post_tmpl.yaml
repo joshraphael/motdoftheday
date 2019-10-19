@@ -3,6 +3,7 @@ layout: "post"
 {{ with .Post }}title: "{{ .Title }}"{{ end }}
 permalink: "/blog/:year/:month/:day/:title/"
 {{ with .User }}author: "{{ .Username }}"{{ end }}
+categories: [{{range $index, $category := .Categories}}{{ if $index }},{{ end }}"{{ $category.Name }}"{{ end }}]
 tags: [{{range $index, $tag := .Tags}}{{ if $index }},{{ end }}"{{ $tag.Name }}"{{ end }}]
 ---
 {{ with .LatestPost }}{{ .Body }}{{ end }}

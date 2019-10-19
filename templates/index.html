@@ -14,7 +14,7 @@
     $(document).ready(function () {
       $("#srteditor").srteditor({
         "Submit": function (e) {
-          var submit = { title: $("#motdoftheday-title").val(), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
+          var submit = { title: $("#motdoftheday-title").val(), categories: $("#motdoftheday-categories").val().split(","), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/submit", JSON.stringify(submit), function (data) {
             $("#motdoftheday-status").html("Post submitted");
           }).fail(function (data) {
@@ -22,7 +22,7 @@
           })
         },
         "Save": function (e) {
-          var save = { title: $("#motdoftheday-title").val(), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
+          var save = { title: $("#motdoftheday-title").val(), categories: $("#motdoftheday-categories").val().split(","), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
           $.post("/api/save", JSON.stringify(save), function (data) {
             $("#motdoftheday-status").html("Post saved");
           }).fail(function (data) {
@@ -37,6 +37,8 @@
 <body>
   <div>
     Title: <input type="text" id="motdoftheday-title" \>
+    <br>
+    Categories (Comma separated): <input type="text" id="motdoftheday-categories" \>
     <br>
     Tags (Comma separated): <input type="text" id="motdoftheday-tags" \>
   </div>

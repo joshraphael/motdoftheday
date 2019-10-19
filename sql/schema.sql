@@ -29,6 +29,14 @@ CREATE TABLE tag (
     UNIQUE(name COLLATE NOCASE)
 );
 
+CREATE TABLE category (
+    id          INTEGER NOT NULL CHECK(TYPEOF(id) = 'integer')          PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL CHECK(TYPEOF(name) = 'text'),
+    user_id     INTEGER NOT NULL CHECK(TYPEOF(user_id) = 'integer')     REFERENCES user(id),
+    insert_time INTEGER NOT NULL CHECK(TYPEOF(insert_time) = 'integer') DEFAULT (CAST(strftime('%s', 'now') as integer)),
+    UNIQUE(name COLLATE NOCASE)
+);
+
 CREATE TABLE post_history (
     id          INTEGER NOT NULL CHECK(TYPEOF(id) = 'integer')          PRIMARY KEY AUTOINCREMENT,
     post_id     INTEGER NOT NULL CHECK(TYPEOF(post_id) = 'integer')     REFERENCES post(id),
@@ -43,4 +51,12 @@ CREATE TABLE post_tags (
     tag_id          INTEGER NOT NULL CHECK(TYPEOF(tag_id) = 'integer')          REFERENCES tag(id),
     insert_time     INTEGER NOT NULL CHECK(TYPEOF(insert_time) = 'integer')     DEFAULT (CAST(strftime('%s', 'now') as integer)),
     UNIQUE(post_history_id, tag_id)
+);
+
+CREATE TABLE post_categories (
+    id              INTEGER NOT NULL CHECK(TYPEOF(id) = 'integer')               PRIMARY KEY AUTOINCREMENT,
+    post_history_id INTEGER NOT NULL CHECK(TYPEOF(post_history_id) = 'integer')  REFERENCES post_history(id),
+    category_id          INTEGER NOT NULL CHECK(TYPEOF(category_id) = 'integer') REFERENCES category(id),
+    insert_time     INTEGER NOT NULL CHECK(TYPEOF(insert_time) = 'integer')      DEFAULT (CAST(strftime('%s', 'now') as integer)),
+    UNIQUE(post_history_id, category_id)
 );
