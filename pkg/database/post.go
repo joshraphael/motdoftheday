@@ -87,6 +87,35 @@ func (database *Database) GetPostByUrlTitle(url_title string) (*Post, error) {
 	return p, nil
 }
 
+func (database *Database) GetDraftPosts() ([]Post, error) {
+	tx, err := database.db.Beginx()
+	if err != nil {
+		msg := "begin transaction for GetDraftPosts: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetDraftPosts: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	ps, err := database.getPostsByPosted(tx, DB_FALSE())
+	if err != nil {
+		fatal := "cannot get drafts in GetDraftPosts: " + err.Error()
+		return nil, errors.New(fatal)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetDraftPosts: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetDraftPosts: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	return ps, nil
+}
+
 func (database *Database) CreatePost(post post.Post, posted BOOL) error {
 	err := post.Validate()
 	if err != nil {
@@ -283,6 +312,33 @@ func (database *Database) getPost(tx *sqlx.Tx, post post.Post) (bool, *Post, err
 		}
 	}
 	return found, &p, nil
+}
+
+func (database *Database) getPostsByPosted(tx *sqlx.Tx, posted BOOL) ([]Post, error) {
+	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post WHERE posted = $1`, cols)
+	stmt, err := tx.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostsByPosted: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	rows, err := stmt.Queryx(posted)
+	if err != nil {
+		msg := "cannot execute statement for getPostsByPosted: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	ps := []Post{}
+	for rows.Next() {
+		var p Post
+		err = rows.StructScan(&p)
+		if err != nil {
+			msg := "cannot unmarshal post from getPostsByPosted: " + err.Error()
+			return nil, errors.New(msg)
+		}
+		ps = append(ps, p)
+	}
+	return ps, nil
 }
 
 func (database *Database) insertPost(tx *sqlx.Tx, post post.Post, posted BOOL) (*int64, error) {

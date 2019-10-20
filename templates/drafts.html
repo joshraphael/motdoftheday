@@ -8,7 +8,13 @@
 </head>
 
 <body>
-    tst
+    <ul>
+        {{ range . }}
+        <li>
+            <a href="/drafts/{{ .ID }}">{{ .Title }}</a> Last updated @ {{ .UpdateTime }}
+        </li>
+        {{ end }}
+    </ul>
 </body>
 
 </html>

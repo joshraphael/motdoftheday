@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 	v := validator.New()
 	db_name := "./" + settings.DB_NAME
 	if _, err := os.Stat(db_name); err != nil {
@@ -41,7 +41,8 @@ func main() {
 	apiHandler := rest.New(v, processor)
 	r.HandleFunc("/", apiHandler.HomeHandler).Methods("GET")
 	r.HandleFunc("/drafts", apiHandler.DraftsHandler).Methods("GET")
-	r.HandleFunc("/edit", apiHandler.EditHandler).Methods("GET")
+	r.HandleFunc("/drafts/{post_id}", apiHandler.DraftHandler).Methods("GET")
+	r.HandleFunc("/edit/{post_history_id}", apiHandler.EditHandler).Methods("GET")
 	// Serve static files
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	r.PathPrefix("/static").Handler(s).Methods("GET")
