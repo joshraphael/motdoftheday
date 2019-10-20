@@ -145,6 +145,19 @@ func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHisto
 	return cs, nil
 }
 
+func (database *Database) getPostCategoriesByHistory(tx *sqlx.Tx, history []PostHistory) (map[int64][]Category, error) {
+	history_categories := make(map[int64][]Category)
+	for i := range history {
+		categories, err := database.getPostCategories(tx, &history[i])
+		if err != nil {
+			msg := "cannot get post categories for getPostCategoriesByHistory: " + err.Error()
+			return nil, errors.New(msg)
+		}
+		history_categories[history[i].ID] = categories
+	}
+	return history_categories, nil
+}
+
 func (database *Database) insertPostCategories(tx *sqlx.Tx, post_history_id int64, category_ids []int64) ([]int64, error) {
 	post_category_ids := []int64{}
 	for i := range category_ids {

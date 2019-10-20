@@ -73,6 +73,10 @@ func (ae ApiError) statusList() map[string]map[string]int {
 			"HTTP": http.StatusBadRequest,
 			"GRPC": 3,
 		},
+		"NOT_FOUND": map[string]int{
+			"HTTP": http.StatusNotFound,
+			"GRPC": 3,
+		},
 		"INTERNAL": map[string]int{
 			"HTTP": http.StatusInternalServerError,
 			"GRPC": 13,

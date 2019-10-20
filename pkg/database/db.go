@@ -10,6 +10,13 @@ type Database struct {
 	db *sqlx.DB
 }
 
+type CompletePost struct {
+	Post       *Post
+	History    []PostHistory
+	Categories map[int64][]Category
+	Tags       map[int64][]Tag
+}
+
 func New(database *sqlx.DB) (*Database, error) {
 	err := database.Ping()
 	if err != nil {

@@ -52,9 +52,16 @@ func (database *Database) GetLatestPost(post *Post) (*PostHistory, error) {
 }
 
 func (database *Database) getLatestPost(tx *sqlx.Tx, post *Post) (*PostHistory, error) {
-	cols := `id, post_id, body, method, insert_time`
-	query := fmt.Sprintf(`SELECT %s FROM post_history WHERE post_id = $1`, cols)
-	stmt, err := database.db.Preparex(query)
+	cols := `MAX(id) AS id, post_id, body, method, insert_time`
+	query := fmt.Sprintf(`
+	SELECT %s
+	FROM post_history
+	WHERE insert_time = (
+	  SELECT MAX(insert_time)
+	  FROM post_history
+	  WHERE post_id = $1
+	)`, cols)
+	stmt, err := tx.Preparex(query)
 	if err != nil {
 		msg := "cannot prepare statement for getLatestPost: " + err.Error()
 		return nil, errors.New(msg)
@@ -74,6 +81,39 @@ func (database *Database) getLatestPost(tx *sqlx.Tx, post *Post) (*PostHistory, 
 		}
 	}
 	return &ph, nil
+}
+
+func (database *Database) getPostHistory(tx *sqlx.Tx, post *Post) ([]PostHistory, error) {
+	cols := `id, post_id, body, method, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post_history WHERE post_id = $1`, cols)
+	stmt, err := database.db.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getLatestPost: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	rows, err := stmt.Queryx(post.ID)
+	if err != nil {
+		msg := "cannot query statement for getLatestPost: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	phs := []PostHistory{}
+	for rows.Next() {
+		var ph PostHistory
+		err = rows.StructScan(&ph)
+		if err != nil {
+			switch err {
+			case sql.ErrNoRows:
+				msg := "no post history found for this post: " + err.Error()
+				return nil, errors.New(msg)
+			default:
+				msg := "cannot unmarshal post from getLatestPost: " + err.Error()
+				return nil, errors.New(msg)
+			}
+		}
+		phs = append(phs, ph)
+	}
+	return phs, nil
 }
 
 func (database *Database) insertPostHistory(tx *sqlx.Tx, post_id int64, post post.Post) (*int64, error) {

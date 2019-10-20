@@ -8,7 +8,38 @@
 </head>
 
 <body>
-    darft
+    {{ with .Post }}
+    <div id="post-{{ .ID }}">
+        {{ .Title }}</br>
+        Created @ {{ .InsertTime }}</br>
+        Last Updated @ {{ .UpdateTime }}<br>
+    </div>
+    {{ end }}
+    {{ range $i, $h := .History }}
+    <div id="history-{{ $h.ID }}">
+        {{ with $.Tags }}
+        {{ $tags := index . $h.ID }}
+        {{ range $j, $tag := $tags }}
+        <span id="tag-{{ $tag.ID }}">
+            {{ $tag.Name }}
+        </span>
+        {{ end }}
+        {{ end }}
+        <br>
+        {{ with $.Categories }}
+        {{ $categories := index . $h.ID }}
+        {{ range $j, $category := $categories }}
+        <span id="category-{{ $category.ID }}">
+            {{ $category.Name }}
+        </span>
+        {{ end }}
+        {{ end }}
+        <br>
+        <span id="history-body">
+            {{ $h.Body }}
+        </span>
+    </div>
+    {{ end }}
 </body>
 
 </html>

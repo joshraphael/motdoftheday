@@ -73,6 +73,19 @@ func (database *Database) getPostTagById(tx *sqlx.Tx, id int64) (*PostTag, error
 	return &pt, nil
 }
 
+func (database *Database) getPostTagsByHistory(tx *sqlx.Tx, history []PostHistory) (map[int64][]Tag, error) {
+	history_tags := make(map[int64][]Tag)
+	for i := range history {
+		tags, err := database.getPostTags(tx, &history[i])
+		if err != nil {
+			msg := "cannot get post categories for getPostCategoriesByHistory: " + err.Error()
+			return nil, errors.New(msg)
+		}
+		history_tags[history[i].ID] = tags
+	}
+	return history_tags, nil
+}
+
 func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([]Tag, error) {
 	cols := `id, post_history_id, tag_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post_tags WHERE post_history_id = $1`, cols)

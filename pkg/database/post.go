@@ -21,6 +21,10 @@ type Post struct {
 
 type BOOL int64
 
+func (b BOOL) Value() int64 {
+	return int64(b)
+}
+
 const (
 	db_TRUE  BOOL = 1
 	db_FALSE BOOL = 0
@@ -34,7 +38,7 @@ func DB_FALSE() BOOL {
 	return db_FALSE
 }
 
-func (database *Database) GetPostById(id int) (*Post, error) {
+func (database *Database) GetPostById(id int64) (*Post, error) {
 	cols := `id, url_title, user_id, title, posted, update_time, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post WHERE id = $1`, cols)
 	stmt, err := database.db.Preparex(query)
@@ -114,6 +118,66 @@ func (database *Database) GetDraftPosts() ([]Post, error) {
 		return nil, errors.New(msg)
 	}
 	return ps, nil
+}
+
+func (database *Database) GetCompletePost(post *Post) (*CompletePost, error) {
+	tx, err := database.db.Beginx()
+	if err != nil {
+		msg := "begin transaction for GetCompletePostById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetCompletePostById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	history, err := database.getPostHistory(tx, post)
+	if err != nil {
+		msg := "cannot get post history for GetCompletePostById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetCompletePostById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	post_categories, err := database.getPostCategoriesByHistory(tx, history)
+	if err != nil {
+		msg := "cannot get post history categories for GetCompletePostById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetCompletePostById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	post_tags, err := database.getPostTagsByHistory(tx, history)
+	if err != nil {
+		msg := "cannot get post history tags for GetCompletePostById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetCompletePostById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetCompletePostById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetCompletePostById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	complete_post := &CompletePost{
+		Post:       post,
+		History:    history,
+		Categories: post_categories,
+		Tags:       post_tags,
+	}
+	return complete_post, nil
 }
 
 func (database *Database) CreatePost(post post.Post, posted BOOL) error {
