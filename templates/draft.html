@@ -2,25 +2,37 @@
 <html lang="en">
 
 <head>
+    <meta charset="utf-8">
+    </meta>
     <title>
         Draft Post
     </title>
+    <script src="/static/js/vendor/jquery/jquery-3.3.1.min.js"></script>
+    <script src="/static/js/draft.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
 </head>
 
 <body>
     {{ with .Post }}
     <div id="post-{{ .ID }}">
-        {{ .Title }}</br>
+        Title: {{ .Title }}</br>
         Created @ {{ .InsertTime }}</br>
         Last Updated @ {{ .UpdateTime }}<br>
     </div>
     {{ end }}
+    <select id="history">
+        {{ range $i, $h := .History }}
+        <option id="{{ $h.ID }}">
+            v{{ $i }}
+        </option>
+        {{ end }}
+    </select>
     {{ range $i, $h := .History }}
-    <div id="history-{{ $h.ID }}">
+    <div id="history-{{ $h.ID }}" class="history">
         {{ with $.Tags }}
         {{ $tags := index . $h.ID }}
         {{ range $j, $tag := $tags }}
-        <span id="tag-{{ $tag.ID }}">
+        <span id="tag-{{ $tag.ID }}" class="fa fa-tag tag">
             {{ $tag.Name }}
         </span>
         {{ end }}
@@ -29,7 +41,7 @@
         {{ with $.Categories }}
         {{ $categories := index . $h.ID }}
         {{ range $j, $category := $categories }}
-        <span id="category-{{ $category.ID }}">
+        <span id="category-{{ $category.ID }}" class="fa fa-list category">
             {{ $category.Name }}
         </span>
         {{ end }}
@@ -40,6 +52,11 @@
         </span>
     </div>
     {{ end }}
+    <div>
+        <button id="edit-button">
+            Edit this version
+        </button>
+    </div>
 </body>
 
 </html>
