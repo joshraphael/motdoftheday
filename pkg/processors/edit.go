@@ -14,10 +14,20 @@ func (prcr Processor) Edit(post_history_id int64, method string) (*database.Comp
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", method)
 		return nil, apiErr
 	}
+	if post_history == nil {
+		msg := "no post history found in Edit"
+		apiErr := apierror.New(errors.New(msg), "NOT_FOUND", apierror.MethodHTTP)
+		return nil, apiErr
+	}
 	post, err := prcr.db.GetPostById(post_history.PostID)
 	if err != nil {
 		msg := "error getting post in Edit: " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", method)
+		return nil, apiErr
+	}
+	if post == nil {
+		msg := "no posts found in Edit"
+		apiErr := apierror.New(errors.New(msg), "INTERNAL", apierror.MethodHTTP)
 		return nil, apiErr
 	}
 	if post.Posted == database.DB_TRUE().Value() {

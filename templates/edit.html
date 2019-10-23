@@ -3,12 +3,53 @@
 
 <head>
     <title>
-        Edit Post
+        MOTD of the day
     </title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
+    <script type="application/javascript" src="/static/js/vendor/jquery/jquery-3.3.1.min.js">
+    </script>
+    <script type="application/javascript" src="/static/js/vendor/srteditor/srteditor.min.js">
+    </script>
+    {{ with .History }}
+    <script type="application/javascript">
+        $(document).ready(function () {
+            $("#srteditor").srteditor({
+                "Submit": function (e) {
+                    var submit = { title: $("#motdoftheday-title").val(), categories: $("#motdoftheday-categories").val().split(","), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
+                    $.post("/api/submit", JSON.stringify(submit), function (data) {
+                        $("#motdoftheday-status").html("Post submitted");
+                    }).fail(function (data) {
+                        $("#motdoftheday-status").html(data.responseText);
+                    })
+                },
+                "Save": function (e) {
+                    var save = { title: $("#motdoftheday-title").val(), categories: $("#motdoftheday-categories").val().split(","), tags: $("#motdoftheday-tags").val().split(","), body: e.data.doc.body.innerHTML };
+                    $.post("/api/save", JSON.stringify(save), function (data) {
+                        $("#motdoftheday-status").html("Post saved");
+                    }).fail(function (data) {
+                        $("#motdoftheday-status").html(data.responseText);
+                    })
+                }
+            }, `{{ .Body }}`);
+        });
+    </script>
+    {{ end }}
 </head>
 
 <body>
-    edit
+    <div>
+        Title: <input type="text" id="motdoftheday-title" value="{{ with .Post }}{{ .Title }}{{ end }}" disabled \>
+        <br>
+        Categories (Comma separated): <input type="text" id="motdoftheday-categories"
+            value="{{with .Categories}}{{range $i, $c := .}}{{if $i}},{{end}}{{$c.Name}}{{end}}{{end}}" \>
+        <br>
+        Tags (Comma separated): <input type="text" id="motdoftheday-tags"
+            value="{{with .Tags}}{{range $i, $t := .}}{{if $i}},{{end}}{{$t.Name}}{{end}}{{end}}" \>
+    </div>
+    <iframe id="srteditor">
+    </iframe>
+    <div id="motdoftheday-status">
+    </div>
 </body>
 
 </html>

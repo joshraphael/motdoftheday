@@ -2,7 +2,6 @@ package rest
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,7 +32,6 @@ func (r Rest) EditHandler(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, msg, apiErr.Code())
 			return
 		}
-		fmt.Println(post_history)
 		tmpl.Execute(w, post_history)
 	}
 }

@@ -196,8 +196,7 @@ func (database *Database) getPostHistoryById(tx *sqlx.Tx, post_history_id int64)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			msg := "no post history found for this post: " + err.Error()
-			return nil, errors.New(msg)
+			return nil, nil
 		default:
 			msg := "cannot unmarshal post from getLatestPost: " + err.Error()
 			return nil, errors.New(msg)
