@@ -15,7 +15,7 @@ type PostTag struct {
 	InsertTime int64 `db:"insert_time"`
 }
 
-func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) {
+func (database *Database) GetPostHistoryTags(post_history *PostHistory) ([]Tag, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
 		msg := "begin transaction for GetPostTags: " + err.Error()
@@ -26,7 +26,7 @@ func (database *Database) GetPostTags(post_history *PostHistory) ([]Tag, error) 
 		}
 		return nil, errors.New(msg)
 	}
-	t, err := database.getPostTags(tx, post_history)
+	t, err := database.getPostHistoryTags(tx, post_history)
 	if err != nil {
 		msg := "cannot get post tags in GetPostTags: " + err.Error()
 		err = tx.Rollback()
@@ -76,7 +76,7 @@ func (database *Database) getPostTagById(tx *sqlx.Tx, id int64) (*PostTag, error
 func (database *Database) getPostTagsByHistory(tx *sqlx.Tx, history []PostHistory) (map[int64][]Tag, error) {
 	history_tags := make(map[int64][]Tag)
 	for i := range history {
-		tags, err := database.getPostTags(tx, &history[i])
+		tags, err := database.getPostHistoryTags(tx, &history[i])
 		if err != nil {
 			msg := "cannot get post categories for getPostCategoriesByHistory: " + err.Error()
 			return nil, errors.New(msg)
@@ -86,7 +86,7 @@ func (database *Database) getPostTagsByHistory(tx *sqlx.Tx, history []PostHistor
 	return history_tags, nil
 }
 
-func (database *Database) getPostTags(tx *sqlx.Tx, post_history *PostHistory) ([]Tag, error) {
+func (database *Database) getPostHistoryTags(tx *sqlx.Tx, post_history *PostHistory) ([]Tag, error) {
 	cols := `id, post_history_id, tag_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post_tags WHERE post_history_id = $1`, cols)
 	stmt, err := tx.Preparex(query)

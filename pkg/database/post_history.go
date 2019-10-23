@@ -17,7 +17,41 @@ type PostHistory struct {
 	InsertTime int64  `db:"insert_time"`
 }
 
-func (database *Database) GetLatestPost(post *Post) (*PostHistory, error) {
+func (database *Database) GetPostHistoryById(post_history_id int64) (*PostHistory, error) {
+	tx, err := database.db.Beginx()
+	if err != nil {
+		msg := "cannot begin transaction for GetPostHistoryById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostHistoryById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	ph, err := database.getPostHistoryById(tx, post_history_id)
+	if err != nil {
+		msg := "cannot get post history in GetPostHistoryById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostHistoryById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	err = tx.Commit()
+	if err != nil {
+		msg := "cannot commit transaction in GetPostHistoryById: " + err.Error()
+		err = tx.Rollback()
+		if err != nil {
+			fatal := "cannot rollback in GetPostHistoryById: " + msg + ": " + err.Error()
+			return nil, errors.New(fatal)
+		}
+		return nil, errors.New(msg)
+	}
+	return ph, nil
+}
+
+func (database *Database) GetLatestPostHistory(post *Post) (*PostHistory, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
 		msg := "cannot begin transaction for GetLatestPost: " + err.Error()
@@ -30,7 +64,7 @@ func (database *Database) GetLatestPost(post *Post) (*PostHistory, error) {
 	}
 	ph, err := database.getLatestPost(tx, post)
 	if err != nil {
-		msg := "cannot get tag in GetLatestPost: " + err.Error()
+		msg := "cannot get post history in GetLatestPost: " + err.Error()
 		err = tx.Rollback()
 		if err != nil {
 			fatal := "cannot rollback in GetLatestPost: " + msg + ": " + err.Error()
@@ -145,4 +179,29 @@ func (database *Database) insertPostHistory(tx *sqlx.Tx, post_id int64, post pos
 		return nil, errors.New(msg)
 	}
 	return &post_history_id, nil
+}
+
+func (database *Database) getPostHistoryById(tx *sqlx.Tx, post_history_id int64) (*PostHistory, error) {
+	cols := `id, post_id, body, method, insert_time`
+	query := fmt.Sprintf(`SELECT %s FROM post_history WHERE id = $1`, cols)
+	stmt, err := database.db.Preparex(query)
+	if err != nil {
+		msg := "cannot prepare statement for getPostHistoryById: " + err.Error()
+		return nil, errors.New(msg)
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowx(post_history_id)
+	var ph PostHistory
+	err = row.StructScan(&ph)
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			msg := "no post history found for this post: " + err.Error()
+			return nil, errors.New(msg)
+		default:
+			msg := "cannot unmarshal post from getLatestPost: " + err.Error()
+			return nil, errors.New(msg)
+		}
+	}
+	return &ph, nil
 }

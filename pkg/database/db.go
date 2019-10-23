@@ -17,6 +17,13 @@ type CompletePost struct {
 	Tags       map[int64][]Tag
 }
 
+type CompletePostHistory struct {
+	Post       *Post
+	History    *PostHistory
+	Categories []Category
+	Tags       []Tag
+}
+
 func New(database *sqlx.DB) (*Database, error) {
 	err := database.Ping()
 	if err != nil {

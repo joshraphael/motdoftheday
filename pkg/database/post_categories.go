@@ -49,7 +49,7 @@ func (database *Database) GetPostCategoryById(id int64) (*PostCategory, error) {
 	return pc, nil
 }
 
-func (database *Database) GetPostCategories(post_history *PostHistory) ([]Category, error) {
+func (database *Database) GetPostHistoryCategories(post_history *PostHistory) ([]Category, error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
 		msg := "begin transaction for GetPostCategories: " + err.Error()
@@ -60,7 +60,7 @@ func (database *Database) GetPostCategories(post_history *PostHistory) ([]Catego
 		}
 		return nil, errors.New(msg)
 	}
-	pc, err := database.getPostCategories(tx, post_history)
+	pc, err := database.getPostHistoryCategories(tx, post_history)
 	if err != nil {
 		msg := "cannot get post categories in GetPostCategories: " + err.Error()
 		err = tx.Rollback()
@@ -107,7 +107,7 @@ func (database *Database) getPostCategoryById(tx *sqlx.Tx, id int64) (*PostCateg
 	return &pc, nil
 }
 
-func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHistory) ([]Category, error) {
+func (database *Database) getPostHistoryCategories(tx *sqlx.Tx, post_history *PostHistory) ([]Category, error) {
 	cols := `id, post_history_id, category_id, insert_time`
 	query := fmt.Sprintf(`SELECT %s FROM post_categories WHERE post_history_id = $1`, cols)
 	stmt, err := tx.Preparex(query)
@@ -148,7 +148,7 @@ func (database *Database) getPostCategories(tx *sqlx.Tx, post_history *PostHisto
 func (database *Database) getPostCategoriesByHistory(tx *sqlx.Tx, history []PostHistory) (map[int64][]Category, error) {
 	history_categories := make(map[int64][]Category)
 	for i := range history {
-		categories, err := database.getPostCategories(tx, &history[i])
+		categories, err := database.getPostHistoryCategories(tx, &history[i])
 		if err != nil {
 			msg := "cannot get post categories for getPostCategoriesByHistory: " + err.Error()
 			return nil, errors.New(msg)

@@ -46,7 +46,7 @@ func (prcr Processor) generatePost(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
-	latest_post, err := prcr.db.GetLatestPost(db_post)
+	latest_post, err := prcr.db.GetLatestPostHistory(db_post)
 	if err != nil {
 		msg := "error getting latest post " + p.UrlTitle() + ": " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
@@ -57,7 +57,7 @@ func (prcr Processor) generatePost(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
-	categories, err := prcr.db.GetPostCategories(latest_post)
+	categories, err := prcr.db.GetPostHistoryCategories(latest_post)
 	if err != nil {
 		msg := "error getting post categories " + p.UrlTitle() + ": " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
@@ -68,7 +68,7 @@ func (prcr Processor) generatePost(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
-	tags, err := prcr.db.GetPostTags(latest_post)
+	tags, err := prcr.db.GetPostHistoryTags(latest_post)
 	if err != nil {
 		msg := "error getting post tags " + p.UrlTitle() + ": " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
