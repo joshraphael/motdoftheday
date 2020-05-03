@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -9,35 +11,32 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"gitlab.com/joshraphael/motdoftheday/internal/server/rest"
+	"gitlab.com/joshraphael/motdoftheday/pkg/config"
 	"gitlab.com/joshraphael/motdoftheday/pkg/database"
 	"gitlab.com/joshraphael/motdoftheday/pkg/processors"
-	"gitlab.com/joshraphael/motdoftheday/settings"
 	"gopkg.in/go-playground/validator.v9"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/gorilla/mux"
 )
 
+type Config struct {
+	MotdOfTheDay config.Config `yaml:"motdoftheday" validate:"required"`
+}
+
 func main() {
 	r := mux.NewRouter().StrictSlash(true)
 	v := validator.New()
-	db_name := "./" + settings.DB_NAME
-	if _, err := os.Stat(db_name); err != nil {
-		msg := "Database " + db_name + " does not exist: " + err.Error()
-		log.Fatalln(msg)
-	}
-	db, err := sqlx.Open("sqlite3", db_name+"?_foreign_keys=on")
+	conf := os.Getenv("CONFIG_ENV")
+	cfg, err := initConfig(v, conf)
+	db, sqlxDB, err := database.New(cfg.MotdOfTheDay.Database)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer db.Close()
-	d, err := database.New(db)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	processor := processors.New(d)
+	defer sqlxDB.Close()
+	processor := processors.New(cfg.MotdOfTheDay.Processors, db)
 	apiHandler := rest.New(v, processor)
 	r.HandleFunc("/", apiHandler.HomeHandler).Methods("GET")
 	r.HandleFunc("/drafts", apiHandler.DraftsHandler).Methods("GET")
@@ -54,7 +53,7 @@ func main() {
 	http.Handle("/", r)
 
 	// Start HTTP Server
-	addr := settings.HOST + ":" + settings.PORT
+	addr := cfg.MotdOfTheDay.Rest.Host + ":" + cfg.MotdOfTheDay.Rest.Port
 	server := &http.Server{
 		Addr:    addr,
 		Handler: nil,
@@ -78,4 +77,24 @@ func main() {
 		log.Fatalln(err)
 	}
 	log.Println("Server Shutdown Properly")
+}
+
+func initConfig(v *validator.Validate, file string) (*Config, error) {
+	configFile, err := ioutil.ReadFile(file)
+	if err != nil {
+		msg := "Error reading config file '" + file + "': " + err.Error()
+		return nil, errors.New(msg)
+	}
+	var cfg Config
+	err = yaml.Unmarshal(configFile, &cfg)
+	if err != nil {
+		msg := "Error loading config '" + file + "': " + err.Error()
+		return nil, errors.New(msg)
+	}
+	err = v.Struct(cfg)
+	if err != nil {
+		msg := "Error validating config '" + file + "': " + err.Error()
+		return nil, errors.New(msg)
+	}
+	return &cfg, nil
 }

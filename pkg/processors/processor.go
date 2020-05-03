@@ -3,11 +3,13 @@ package processors
 import "gitlab.com/joshraphael/motdoftheday/pkg/database"
 
 type Processor struct {
-	db *database.Database
+	db  *database.Database
+	cfg Config
 }
 
-func New(database *database.Database) Processor {
+func New(cfg Config, database *database.Database) Processor {
 	return Processor{
-		db: database,
+		db:  database,
+		cfg: cfg,
 	}
 }

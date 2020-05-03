@@ -11,7 +11,6 @@ import (
 	"gitlab.com/joshraphael/motdoftheday/pkg/apierror"
 	"gitlab.com/joshraphael/motdoftheday/pkg/database"
 	"gitlab.com/joshraphael/motdoftheday/pkg/post"
-	"gitlab.com/joshraphael/motdoftheday/settings"
 )
 
 type generatedPost struct {
@@ -84,27 +83,27 @@ func (prcr Processor) generatePost(p post.Post) apierror.IApiError {
 		apiErr := apierror.New(errors.New(msg), "BAD_REQUEST", p.Method())
 		return apiErr
 	}
-	if _, err := os.Stat(settings.POST_TEMPLATE); err != nil {
-		msg := "Template file " + settings.POST_TEMPLATE + " does not exist: " + err.Error()
+	if _, err := os.Stat(prcr.cfg.TemplateFile); err != nil {
+		msg := "Template file " + prcr.cfg.TemplateFile + " does not exist: " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
 		return apiErr
 	}
-	tmpl, err := template.ParseFiles(settings.POST_TEMPLATE)
+	tmpl, err := template.ParseFiles(prcr.cfg.TemplateFile)
 	if err != nil {
-		msg := "Cannot read template file " + settings.POST_TEMPLATE + ": " + err.Error()
+		msg := "Cannot read template file " + prcr.cfg.TemplateFile + ": " + err.Error()
 		apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
 		return apiErr
 	}
 	year, month, day := time.Unix(latest_post.InsertTime, 0).UTC().Date()
-	if _, err := os.Stat(settings.POST_DIR); os.IsNotExist(err) {
-		e := os.MkdirAll(settings.POST_DIR, os.ModePerm)
+	if _, err := os.Stat(prcr.cfg.Directory); os.IsNotExist(err) {
+		e := os.MkdirAll(prcr.cfg.Directory, os.ModePerm)
 		if e != nil {
-			msg := "cannot create post dir " + settings.POST_DIR + ": " + e.Error()
+			msg := "cannot create post dir " + prcr.cfg.Directory + ": " + e.Error()
 			apiErr := apierror.New(errors.New(msg), "INTERNAL", p.Method())
 			return apiErr
 		}
 	}
-	filename := settings.POST_DIR + "/" + strconv.Itoa(year) + "-" + strconv.Itoa(int(month)) + "-" + strconv.Itoa(day) + "-" + db_post.UrlTitle + ".md"
+	filename := prcr.cfg.Directory + "/" + strconv.Itoa(year) + "-" + strconv.Itoa(int(month)) + "-" + strconv.Itoa(day) + "-" + db_post.UrlTitle + ".md"
 	gp := generatedPost{
 		Post:       db_post,
 		User:       user,

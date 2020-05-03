@@ -2,6 +2,8 @@ APP_NAME=motdoftheday
 GO=go
 BUILD=$(GO) build
 RUN=$(GO) run
+CONFIG_ENV:=.config/local.yml
+.EXPORT_ALL_VARIABLES:
 
 clean:
 	rm -rf vendor/

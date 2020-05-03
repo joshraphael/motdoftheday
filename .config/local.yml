@@ -1,0 +1,11 @@
+motdoftheday:
+  rest:
+    host: "0.0.0.0"
+    port: "8080"
+
+  db:
+    file: "motdoftheday.db"
+
+  processors:
+    dir: "tmp/post"
+    template: "yaml/post_tmpl.yaml"
